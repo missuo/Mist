@@ -78,15 +78,23 @@
     // First time enabling iCloud sync
     NSLog(@"[Config] Enabling iCloud sync for the first time");
     
-    // First, upload local data to iCloud
-    [self syncToiCloud];
-    NSLog(@"[Config] Uploaded local configs to iCloud");
+    // First, upload local data to iCloud (if we have any)
+    if (self.mutableHostConfigs.count > 0) {
+      [self syncToiCloud];
+      NSLog(@"[Config] Uploaded %lu local configs to iCloud", 
+            (unsigned long)self.mutableHostConfigs.count);
+    } else {
+      NSLog(@"[Config] No local configs to upload");
+    }
     
-    // Then, check if iCloud has newer data and load it
+    // Immediately check if iCloud already has data
     // This handles the case where iCloud already has data from another device
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), 
+    [self loadFromiCloudIfAvailable];
+    
+    // Also schedule a delayed check in case iCloud sync is still in progress
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), 
                    dispatch_get_main_queue(), ^{
-      NSLog(@"[Config] Checking for existing iCloud data...");
+      NSLog(@"[Config] Delayed check for iCloud data...");
       [self loadFromiCloudIfAvailable];
       
       // Notify UI to refresh
@@ -94,6 +102,11 @@
           postNotificationName:MSTConfigDidChangeNotification
                         object:nil];
     });
+    
+    // Notify UI immediately
+    [[NSNotificationCenter defaultCenter]
+        postNotificationName:MSTConfigDidChangeNotification
+                      object:nil];
   }
 }
 
@@ -400,6 +413,8 @@
   
   if (hasCloudData) {
     NSLog(@"[Config] Successfully loaded data from iCloud");
+    // Update last sync date since we successfully loaded data
+    [self.iCloudSyncManager updateLastSyncDate];
   } else {
     NSLog(@"[Config] No data found in iCloud yet - waiting for initial sync");
   }

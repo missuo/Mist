@@ -35,6 +35,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)startObserving;
 - (void)stopObserving;
 
+- (void)updateLastSyncDate;
+
 - (void)printStatus;
 
 @end
