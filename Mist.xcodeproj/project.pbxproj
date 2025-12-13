@@ -57,6 +57,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BF4A51A92EEE1D7C0072FB14 /* Exceptions for "Mist" folder in "MistShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App/MSTConstants.m,
+				Services/MSTiCloudSyncManager.m,
+			);
+			target = BFC8D8402EEDF000004235B2 /* MistShareExtension */;
+		};
 		BFC8D6102EEDD000004235B2 /* Exceptions for "Mist" folder in "Mist" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -71,6 +79,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				BFC8D6102EEDD000004235B2 /* Exceptions for "Mist" folder in "Mist" target */,
+				BF4A51A92EEE1D7C0072FB14 /* Exceptions for "Mist" folder in "MistShareExtension" target */,
 			);
 			path = Mist;
 			sourceTree = "<group>";
@@ -398,7 +407,7 @@
 				CODE_SIGN_ENTITLEMENTS = Mist/Mist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = ZDY6H3JN3N;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -431,7 +440,7 @@
 				CODE_SIGN_ENTITLEMENTS = Mist/Mist.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = ZDY6H3JN3N;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
