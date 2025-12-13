@@ -24,6 +24,13 @@
 @property(nonatomic, strong) NSMenuItem *uploadMenuItem;
 @property(nonatomic, strong) NSMenuItem *hostsMenuItem;
 @property(nonatomic, strong) NSMenuItem *formatMenuItem;
+@property(nonatomic, strong) NSMenuItem *fullDiskAccessMenuItem;
+@property(nonatomic, strong) NSMenuItem *statusInfoMenuItem;
+
+// Batch upload tracking
+@property(nonatomic, strong, nullable) NSMutableArray<NSString *> *batchUploadURLs;
+@property(nonatomic, assign) NSInteger batchUploadTotal;
+@property(nonatomic, assign) NSInteger batchUploadCompleted;
 
 @end
 
@@ -43,6 +50,137 @@ static MSTAppDelegate *_shared = nil;
   [self setupMenu];
   [self registerNotifications];
   [self requestNotificationPermission];
+  
+  // Register for URL events
+  [[NSAppleEventManager sharedAppleEventManager]
+      setEventHandler:self
+          andSelector:@selector(handleURLEvent:withReplyEvent:)
+        forEventClass:kInternetEventClass
+           andEventID:kAEGetURL];
+}
+
+#pragma mark - URL Scheme Handler
+
+- (void)handleURLEvent:(NSAppleEventDescriptor *)event
+        withReplyEvent:(NSAppleEventDescriptor *)replyEvent {
+  NSString *urlString = [[event paramDescriptorForKeyword:keyDirectObject] stringValue];
+  NSLog(@"[Mist] Received URL: %@", urlString);
+  
+  NSURL *url = [NSURL URLWithString:urlString];
+  if (!url || ![url.scheme isEqualToString:@"mist"]) {
+    return;
+  }
+  
+  // Handle mist://files?path1,path2,path3
+  if ([url.host isEqualToString:@"files"]) {
+    NSString *query = url.query;
+    if (query.length > 0) {
+      NSString *decodedQuery = [query stringByRemovingPercentEncoding];
+      NSArray<NSString *> *paths = [decodedQuery componentsSeparatedByString:@","];
+      NSLog(@"[Mist] Files to upload: %@", paths);
+      [self uploadFilesAtPaths:paths];
+    }
+  }
+}
+
+- (void)uploadFilesAtPaths:(NSArray<NSString *> *)paths {
+  if (paths.count == 0) {
+    return;
+  }
+  
+  // Initialize batch upload tracking
+  self.batchUploadURLs = [NSMutableArray array];
+  self.batchUploadTotal = paths.count;
+  self.batchUploadCompleted = 0;
+  
+  // Upload all files
+  for (NSString *path in paths) {
+    NSString *decodedPath = [path stringByRemovingPercentEncoding];
+    NSURL *fileURL = [NSURL fileURLWithPath:decodedPath];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:decodedPath]) {
+      [self uploadFileAtURLInBatch:fileURL];
+    } else {
+      NSLog(@"[Mist] File not found: %@", decodedPath);
+      [self showNotificationWithTitle:@"File Not Found"
+                              message:[NSString stringWithFormat:@"Cannot access: %@", decodedPath]];
+      // Count as completed (failed)
+      self.batchUploadCompleted++;
+      [self checkBatchUploadCompletion];
+    }
+  }
+}
+
+- (void)uploadFileAtURLInBatch:(NSURL *)url {
+  MSTS3HostConfig *config = [MSTConfigManager sharedManager].defaultHost;
+  if (!config) {
+    [self showNotificationWithTitle:@"No Host"
+                            message:@"Please configure a host first"];
+    self.statusInfoMenuItem.title = @"Upload failed: No host configured";
+    self.batchUploadCompleted++;
+    [self checkBatchUploadCompletion];
+    return;
+  }
+
+  NSLog(@"[Mist] Upload starting for %@", url.path);
+
+  [[MSTS3Uploader sharedUploader]
+      uploadFileAtURL:url
+           withConfig:config
+             progress:nil
+           completion:^(NSString *resultURL, NSError *error) {
+             dispatch_async(dispatch_get_main_queue(), ^{
+               if (resultURL) {
+                 [self.batchUploadURLs addObject:resultURL];
+               }
+               self.batchUploadCompleted++;
+               [self checkBatchUploadCompletion];
+             });
+           }];
+}
+
+- (void)checkBatchUploadCompletion {
+  if (self.batchUploadCompleted >= self.batchUploadTotal) {
+    // All uploads completed
+    NSInteger successCount = self.batchUploadURLs.count;
+    NSInteger failedCount = self.batchUploadTotal - successCount;
+    
+    if (successCount > 0) {
+      // Format all URLs
+      NSMutableArray *formattedURLs = [NSMutableArray array];
+      for (NSString *url in self.batchUploadURLs) {
+        NSString *formatted = [[MSTConfigManager sharedManager] formatURL:url];
+        [formattedURLs addObject:formatted];
+      }
+      
+      // Join with newlines
+      NSString *allURLs = [formattedURLs componentsJoinedByString:@"\n"];
+      [self copyToClipboard:allURLs];
+      
+      // Show notification
+      NSString *message;
+      if (self.batchUploadTotal == 1) {
+        message = self.batchUploadURLs.firstObject;
+      } else if (failedCount > 0) {
+        message = [NSString stringWithFormat:@"Uploaded %ld/%ld files", 
+                   (long)successCount, (long)self.batchUploadTotal];
+      } else {
+        message = [NSString stringWithFormat:@"Uploaded %ld files", (long)successCount];
+      }
+      [self showNotificationWithTitle:@"Upload Successful" message:message];
+      self.statusInfoMenuItem.title = [NSString stringWithFormat:@"Uploaded %ld/%ld files", 
+                                       (long)successCount, (long)self.batchUploadTotal];
+    } else {
+      // All failed
+      [self showNotificationWithTitle:@"Upload Failed" 
+                              message:@"All uploads failed"];
+      self.statusInfoMenuItem.title = @"Upload failed";
+    }
+    
+    // Reset batch tracking
+    self.batchUploadURLs = nil;
+    self.batchUploadTotal = 0;
+    self.batchUploadCompleted = 0;
+  }
 }
 
 - (void)setupMainMenu {
@@ -169,6 +307,23 @@ static MSTAppDelegate *_shared = nil;
 
 - (void)setupMenu {
   self.statusMenu = [[NSMenu alloc] init];
+  self.statusMenu.delegate = self;
+
+  // Full Disk Access status
+  self.fullDiskAccessMenuItem =
+      [[NSMenuItem alloc] initWithTitle:@"Checking Full Disk Access..."
+                                 action:nil
+                          keyEquivalent:@""]; 
+  [self.statusMenu addItem:self.fullDiskAccessMenuItem];
+  [self updateFullDiskAccessMenuItem];
+
+  // Upload status info
+  self.statusInfoMenuItem = [[NSMenuItem alloc] initWithTitle:@"Ready"
+                                                       action:nil
+                                                keyEquivalent:@""];
+  [self.statusMenu addItem:self.statusInfoMenuItem];
+
+  [self.statusMenu addItem:[NSMenuItem separatorItem]];
 
   // Upload from clipboard
   self.uploadMenuItem =
@@ -340,6 +495,8 @@ static MSTAppDelegate *_shared = nil;
     self.statusItem.button.image = nil;
     self.progressIndicator.hidden = NO;
     [self.progressIndicator startAnimation:nil];
+
+    self.statusInfoMenuItem.title = @"Uploading...";
   });
 }
 
@@ -359,11 +516,19 @@ static MSTAppDelegate *_shared = nil;
     icon.template = YES;
     self.statusItem.button.image = icon;
 
-    NSString *url = notification.userInfo[@"url"];
-    if (url) {
-      NSString *formattedURL = [[MSTConfigManager sharedManager] formatURL:url];
-      [self copyToClipboard:formattedURL];
-      [self showNotificationWithTitle:@"Upload Successful" message:url];
+    // Only handle single file uploads here (not batch uploads)
+    if (self.batchUploadURLs == nil) {
+      NSString *url = notification.userInfo[@"url"];
+      if (url) {
+        NSString *formattedURL = [[MSTConfigManager sharedManager] formatURL:url];
+        [self copyToClipboard:formattedURL];
+        [self showNotificationWithTitle:@"Upload Successful" message:url];
+        self.statusInfoMenuItem.title = @"Upload successful";
+      }
+    } else {
+      self.statusInfoMenuItem.title = [NSString stringWithFormat:@"Uploading %ld/%ld files", 
+                                       (long)self.batchUploadCompleted, 
+                                       (long)self.batchUploadTotal];
     }
   });
 }
@@ -385,9 +550,20 @@ static MSTAppDelegate *_shared = nil;
     self.statusItem.button.image = icon;
 
     NSError *error = notification.userInfo[@"error"];
-    [self showNotificationWithTitle:@"Upload Failed"
-                            message:error.localizedDescription
-                                        ?: @"Unknown error"];
+    
+    // Only show individual error notifications for single uploads
+    if (self.batchUploadURLs == nil) {
+      [self showNotificationWithTitle:@"Upload Failed"
+                              message:error.localizedDescription
+                                          ?: @"Unknown error"];
+      if (error.localizedDescription.length > 0) {
+        self.statusInfoMenuItem.title =
+            [NSString stringWithFormat:@"Upload failed: %@",
+                                       error.localizedDescription];
+      } else {
+        self.statusInfoMenuItem.title = @"Upload failed";
+      }
+    }
   });
 }
 
@@ -483,8 +659,11 @@ static MSTAppDelegate *_shared = nil;
   if (!config) {
     [self showNotificationWithTitle:@"No Host"
                             message:@"Please configure a host first"];
+    self.statusInfoMenuItem.title = @"Upload failed: No host configured";
     return;
   }
+
+  NSLog(@"[Mist] Upload starting for %@", url.path);
 
   [[MSTS3Uploader sharedUploader]
       uploadFileAtURL:url
@@ -511,6 +690,64 @@ static MSTAppDelegate *_shared = nil;
       completion:^(NSString *url, NSError *error){
           // Notification handlers will take care of UI updates
       }];
+}
+
+#pragma mark - Full Disk Access
+
+- (BOOL)hasFullDiskAccess {
+  NSError *error = nil;
+  NSString *tccPath = @"/Library/Application Support/com.apple.TCC/TCC.db";
+  [NSData dataWithContentsOfFile:tccPath
+                         options:NSDataReadingMappedIfSafe
+                           error:&error];
+  if (!error) {
+    return YES;
+  }
+
+  if (error.code == NSFileReadNoPermissionError) {
+    return NO;
+  }
+
+  error = nil;
+  NSString *mailPath =
+      [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Mail"];
+  [[NSFileManager defaultManager] contentsOfDirectoryAtPath:mailPath
+                                                       error:&error];
+
+  if (!error) {
+    return YES;
+  }
+
+  if (error.code == NSFileReadNoPermissionError) {
+    return NO;
+  }
+
+  return NO;
+}
+
+- (void)updateFullDiskAccessMenuItem {
+  BOOL granted = [self hasFullDiskAccess];
+  if (!self.fullDiskAccessMenuItem) {
+    return;
+  }
+
+  if (granted) {
+    self.fullDiskAccessMenuItem.title = @"Full Disk Access: Granted";
+    self.fullDiskAccessMenuItem.action = nil;
+    self.fullDiskAccessMenuItem.target = nil;
+    self.fullDiskAccessMenuItem.enabled = NO;
+  } else {
+    self.fullDiskAccessMenuItem.title = @"Grant Full Disk Access...";
+    self.fullDiskAccessMenuItem.action = @selector(openFullDiskAccessPreferences);
+    self.fullDiskAccessMenuItem.target = self;
+    self.fullDiskAccessMenuItem.enabled = YES;
+  }
+}
+
+- (void)openFullDiskAccessPreferences {
+  NSURL *url = [NSURL
+      URLWithString:@"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"];
+  [[NSWorkspace sharedWorkspace] openURL:url];
 }
 
 #pragma mark - Utilities
@@ -563,6 +800,10 @@ static MSTAppDelegate *_shared = nil;
 #pragma mark - NSMenuDelegate
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
+  if (menu == self.statusMenu) {
+    [self updateFullDiskAccessMenuItem];
+  }
+
   if (menu == self.formatMenuItem.submenu) {
     MSTOutputFormat currentFormat =
         [MSTConfigManager sharedManager].outputFormat;

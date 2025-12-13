@@ -15,6 +15,7 @@ extern NSString * const kMSTHostConfigs;
 extern NSString * const kMSTDefaultHostId;
 extern NSString * const kMSTOutputFormat;
 extern NSString * const kMSTCompressFactor;
+extern NSString * const kMSTAppGroupIdentifier;
 
 #pragma mark - Notifications
 

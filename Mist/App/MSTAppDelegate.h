@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)openPreferences;
 - (void)uploadFromClipboard;
 - (void)selectFileToUpload;
+- (void)uploadFilesAtPaths:(NSArray<NSString *> *)paths;
 
 @end
 

@@ -13,12 +13,25 @@
 #import <CommonCrypto/CommonHMAC.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
+@interface MSTUploadQueueItem : NSObject
+@property(nonatomic, strong) NSData *data;
+@property(nonatomic, copy) NSString *filename;
+@property(nonatomic, strong) MSTS3HostConfig *config;
+@property(nonatomic, copy, nullable) MSTUploadProgressBlock progressBlock;
+@property(nonatomic, copy) MSTUploadCompletionBlock completionBlock;
+@end
+
+@implementation MSTUploadQueueItem
+@end
+
 @interface MSTS3Uploader () <NSURLSessionTaskDelegate>
 
 @property(nonatomic, strong) NSURLSession *session;
 @property(nonatomic, strong, nullable) NSURLSessionDataTask *currentTask;
 @property(nonatomic, assign) BOOL isUploading;
 @property(nonatomic, copy, nullable) MSTUploadProgressBlock progressBlock;
+@property(nonatomic, strong) NSMutableArray<MSTUploadQueueItem *> *uploadQueue;
+@property(nonatomic, strong) dispatch_queue_t queueProcessingQueue;
 
 @end
 
@@ -43,6 +56,8 @@
     _session = [NSURLSession sessionWithConfiguration:config
                                              delegate:self
                                         delegateQueue:nil];
+    _uploadQueue = [NSMutableArray array];
+    _queueProcessingQueue = dispatch_queue_create("nz.owo.Mist.uploadQueue", DISPATCH_QUEUE_SERIAL);
   }
   return self;
 }
@@ -53,13 +68,72 @@
              withConfig:(MSTS3HostConfig *)config
                progress:(nullable MSTUploadProgressBlock)progressBlock
              completion:(MSTUploadCompletionBlock)completionBlock {
-
-  NSData *data = [NSData dataWithContentsOfURL:fileURL];
-  if (!data) {
+  NSLog(@"[Mist] Preparing upload for %@", fileURL.path);
+  
+  // Check if file exists first
+  BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:fileURL.path];
+  NSLog(@"[Mist] File exists: %@", fileExists ? @"YES" : @"NO");
+  if (!fileExists) {
     NSError *error = [NSError
         errorWithDomain:@"MSTUploaderError"
                    code:-1
-               userInfo:@{NSLocalizedDescriptionKey : @"Failed to read file"}];
+               userInfo:@{
+                 NSLocalizedDescriptionKey :
+                     [NSString stringWithFormat:@"File not found: %@", fileURL.path]
+               }];
+    
+    NSLog(@"[Mist] File read failed: %@", error.localizedDescription);
+    
+    [[NSNotificationCenter defaultCenter]
+        postNotificationName:MSTUploadDidFailNotification
+                      object:nil
+                    userInfo:@{@"error" : error}];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+      completionBlock(nil, error);
+    });
+    return;
+  }
+
+  BOOL didStartSecurityScope = [fileURL startAccessingSecurityScopedResource];
+  NSLog(@"[Mist] Security scoped resource access: %@", didStartSecurityScope ? @"YES" : @"NO");
+  
+  NSError *readError = nil;
+  NSData *data = [NSData dataWithContentsOfURL:fileURL
+                                        options:NSDataReadingMappedIfSafe
+                                          error:&readError];
+  if (didStartSecurityScope) {
+    [fileURL stopAccessingSecurityScopedResource];
+  }
+  if (!data) {
+    NSError *error = readError;
+
+    if (error && error.domain == NSCocoaErrorDomain &&
+        error.code == NSFileReadNoPermissionError) {
+      error = [NSError
+          errorWithDomain:@"MSTUploaderError"
+                     code:-1
+                 userInfo:@{
+                   NSLocalizedDescriptionKey :
+                       @"Cannot read file due to permissions. Please grant Full Disk Access in System Settings."
+                 }];
+    } else if (!error) {
+      error = [NSError
+          errorWithDomain:@"MSTUploaderError"
+                     code:-1
+                 userInfo:@{
+                   NSLocalizedDescriptionKey :
+                       @"Failed to read file. Please grant Full Disk Access if the file is protected."
+                 }];
+    }
+    
+    NSLog(@"[Mist] File read failed: %@", error.localizedDescription);
+    
+    [[NSNotificationCenter defaultCenter]
+        postNotificationName:MSTUploadDidFailNotification
+                      object:nil
+                    userInfo:@{@"error" : error}];
+    
     dispatch_async(dispatch_get_main_queue(), ^{
       completionBlock(nil, error);
     });
@@ -67,6 +141,8 @@
   }
 
   NSString *filename = fileURL.lastPathComponent;
+  NSLog(@"[Mist] Read file succeeded (%lu bytes). Starting upload...",
+        (unsigned long)data.length);
   [self uploadData:data
           filename:filename
         withConfig:config
@@ -79,19 +155,6 @@
         withConfig:(MSTS3HostConfig *)config
           progress:(nullable MSTUploadProgressBlock)progressBlock
         completion:(MSTUploadCompletionBlock)completionBlock {
-
-  if (self.isUploading) {
-    NSError *error = [NSError
-        errorWithDomain:@"MSTUploaderError"
-                   code:-2
-               userInfo:@{
-                 NSLocalizedDescriptionKey : @"Upload already in progress"
-               }];
-    dispatch_async(dispatch_get_main_queue(), ^{
-      completionBlock(nil, error);
-    });
-    return;
-  }
 
   // Validate config
   if (config.bucket.length == 0 || config.accessKey.length == 0 ||
@@ -108,23 +171,58 @@
     return;
   }
 
+  // Create queue item
+  MSTUploadQueueItem *item = [[MSTUploadQueueItem alloc] init];
+  item.data = data;
+  item.filename = filename;
+  item.config = config;
+  item.progressBlock = progressBlock;
+  item.completionBlock = completionBlock;
+  
+  dispatch_async(self.queueProcessingQueue, ^{
+    [self.uploadQueue addObject:item];
+    NSLog(@"[Mist] Added to queue. Queue size: %lu", (unsigned long)self.uploadQueue.count);
+    [self processNextUpload];
+  });
+}
+
+- (void)processNextUpload {
+  dispatch_async(self.queueProcessingQueue, ^{
+    if (self.isUploading || self.uploadQueue.count == 0) {
+      return;
+    }
+    
+    MSTUploadQueueItem *item = self.uploadQueue.firstObject;
+    [self.uploadQueue removeObjectAtIndex:0];
+    
+    NSLog(@"[Mist] Processing upload. Remaining in queue: %lu", (unsigned long)self.uploadQueue.count);
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [self performUploadWithItem:item];
+    });
+  });
+}
+
+- (void)performUploadWithItem:(MSTUploadQueueItem *)item {
   self.isUploading = YES;
-  self.progressBlock = progressBlock;
+  self.progressBlock = item.progressBlock;
 
   [[NSNotificationCenter defaultCenter]
       postNotificationName:MSTUploadDidStartNotification
                     object:nil];
 
   // Generate save key from path template
-  NSString *saveKey = [self generateSaveKeyWithTemplate:config.saveKeyPath
-                                               filename:filename];
+  NSString *saveKey = [self generateSaveKeyWithTemplate:item.config.saveKeyPath
+                                               filename:item.filename];
+  
+  NSLog(@"[Mist] Upload request starting: %@/%@", item.config.baseURL, saveKey);
 
   // Get content type
-  NSString *contentType = [self mimeTypeForFilename:filename];
+  NSString *contentType = [self mimeTypeForFilename:item.filename];
 
   // Build the request
-  NSMutableURLRequest *request = [self buildS3RequestWithConfig:config
-                                                           data:data
+  NSMutableURLRequest *request = [self buildS3RequestWithConfig:item.config
+                                                           data:item.data
                                                         saveKey:saveKey
                                                     contentType:contentType];
 
@@ -145,24 +243,30 @@
                               object:nil
                             userInfo:@{@"error" : error}];
             dispatch_async(dispatch_get_main_queue(), ^{
-              completionBlock(nil, error);
+              item.completionBlock(nil, error);
             });
+            
+            // Process next upload
+            [self processNextUpload];
             return;
           }
 
           if (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300) {
             NSLog(@"Upload success - Domain: '%@', BaseURL: '%@'",
-                  config.domain, config.baseURL);
+                  item.config.domain, item.config.baseURL);
             NSString *url =
-                [NSString stringWithFormat:@"%@/%@", config.baseURL, saveKey];
+                [NSString stringWithFormat:@"%@/%@", item.config.baseURL, saveKey];
 
             [[NSNotificationCenter defaultCenter]
                 postNotificationName:MSTUploadDidFinishNotification
                               object:nil
                             userInfo:@{@"url" : url}];
             dispatch_async(dispatch_get_main_queue(), ^{
-              completionBlock(url, nil);
+              item.completionBlock(url, nil);
             });
+            
+            // Process next upload
+            [self processNextUpload];
           } else {
             NSString *errorMessage =
                 [[NSString alloc] initWithData:responseData
@@ -181,8 +285,11 @@
                               object:nil
                             userInfo:@{@"error" : uploadError}];
             dispatch_async(dispatch_get_main_queue(), ^{
-              completionBlock(nil, uploadError);
+              item.completionBlock(nil, uploadError);
             });
+            
+            // Process next upload
+            [self processNextUpload];
           }
         }];
 

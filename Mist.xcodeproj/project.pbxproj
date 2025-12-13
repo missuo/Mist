@@ -6,8 +6,30 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BFC8D8502EEDF000004235B2 /* MSTShareViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = BFC8D8042EEDF000004235B2 /* MSTShareViewController.m */; };
+		BFC8D8602EEDF000004235B2 /* MistShareExtension.appex in Embed Extensions */ = {isa = PBXBuildFile; fileRef = BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BFC8D5F32EEDA414004235B2 /* Mist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mist.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = MistShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFC8D8012EEDF000004235B2 /* MSTUploadHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTUploadHelper.h; sourceTree = "<group>"; };
+		BFC8D8022EEDF000004235B2 /* MSTUploadHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTUploadHelper.m; sourceTree = "<group>"; };
+		BFC8D8032EEDF000004235B2 /* MSTShareViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSTShareViewController.h; sourceTree = "<group>"; };
+		BFC8D8042EEDF000004235B2 /* MSTShareViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSTShareViewController.m; sourceTree = "<group>"; };
+		BFC8D8052EEDF000004235B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BFC8D8062EEDF000004235B2 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		BFC8D80F2EEDF000004235B2 /* MSTConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/App/MSTConstants.h; sourceTree = "<group>"; };
+		BFC8D8102EEDF000004235B2 /* MSTConstants.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/App/MSTConstants.m; sourceTree = "<group>"; };
+		BFC8D8112EEDF000004235B2 /* MSTConfigManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTConfigManager.h; sourceTree = "<group>"; };
+		BFC8D8122EEDF000004235B2 /* MSTConfigManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTConfigManager.m; sourceTree = "<group>"; };
+		BFC8D8132EEDF000004235B2 /* MSTS3Uploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTS3Uploader.h; sourceTree = "<group>"; };
+		BFC8D8142EEDF000004235B2 /* MSTS3Uploader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTS3Uploader.m; sourceTree = "<group>"; };
+		BFC8D8152EEDF000004235B2 /* MSTS3HostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3HostConfig.h; sourceTree = "<group>"; };
+		BFC8D8162EEDF000004235B2 /* MSTS3HostConfig.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3HostConfig.m; sourceTree = "<group>"; };
+		BFC8D8172EEDF000004235B2 /* MSTS3Region.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3Region.h; sourceTree = "<group>"; };
+		BFC8D8182EEDF000004235B2 /* MSTS3Region.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3Region.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -39,6 +61,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BFC8D8312EEDF000004235B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -46,6 +75,8 @@
 			isa = PBXGroup;
 			children = (
 				BFC8D5F52EEDA414004235B2 /* Mist */,
+				BFC8D8202EEDF000004235B2 /* SharedSources */,
+				BFC8D8212EEDF000004235B2 /* ShareExtension */,
 				BFC8D5F42EEDA414004235B2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,8 +85,39 @@
 			isa = PBXGroup;
 			children = (
 				BFC8D5F32EEDA414004235B2 /* Mist.app */,
+				BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BFC8D8202EEDF000004235B2 /* SharedSources */ = {
+			isa = PBXGroup;
+			children = (
+				BFC8D80F2EEDF000004235B2 /* MSTConstants.h */,
+				BFC8D8102EEDF000004235B2 /* MSTConstants.m */,
+				BFC8D8112EEDF000004235B2 /* MSTConfigManager.h */,
+				BFC8D8122EEDF000004235B2 /* MSTConfigManager.m */,
+				BFC8D8132EEDF000004235B2 /* MSTS3Uploader.h */,
+				BFC8D8142EEDF000004235B2 /* MSTS3Uploader.m */,
+				BFC8D8152EEDF000004235B2 /* MSTS3HostConfig.h */,
+				BFC8D8162EEDF000004235B2 /* MSTS3HostConfig.m */,
+				BFC8D8172EEDF000004235B2 /* MSTS3Region.h */,
+				BFC8D8182EEDF000004235B2 /* MSTS3Region.m */,
+				BFC8D8012EEDF000004235B2 /* MSTUploadHelper.h */,
+				BFC8D8022EEDF000004235B2 /* MSTUploadHelper.m */,
+			);
+			name = SharedSources;
+			sourceTree = "<group>";
+		};
+		BFC8D8212EEDF000004235B2 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				BFC8D8052EEDF000004235B2 /* Info.plist */,
+				BFC8D8062EEDF000004235B2 /* ShareExtension.entitlements */,
+				BFC8D8032EEDF000004235B2 /* MSTShareViewController.h */,
+				BFC8D8042EEDF000004235B2 /* MSTShareViewController.m */,
+			);
+			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -68,10 +130,12 @@
 				BFC8D5EF2EEDA414004235B2 /* Sources */,
 				BFC8D5F02EEDA414004235B2 /* Frameworks */,
 				BFC8D5F12EEDA414004235B2 /* Resources */,
+				BFC8D8362EEDF000004235B2 /* Embed Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BFC8D84A2EEDF000004235B2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BFC8D5F52EEDA414004235B2 /* Mist */,
@@ -82,6 +146,23 @@
 			productName = Mist;
 			productReference = BFC8D5F32EEDA414004235B2 /* Mist.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BFC8D8402EEDF000004235B2 /* MistShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BFC8D8442EEDF000004235B2 /* Build configuration list for PBXNativeTarget "MistShareExtension" */;
+			buildPhases = (
+				BFC8D8302EEDF000004235B2 /* Sources */,
+				BFC8D8312EEDF000004235B2 /* Frameworks */,
+				BFC8D8322EEDF000004235B2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MistShareExtension;
+			productName = MistShareExtension;
+			productReference = BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -94,6 +175,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					BFC8D5F22EEDA414004235B2 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					BFC8D8402EEDF000004235B2 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -113,12 +197,20 @@
 			projectRoot = "";
 			targets = (
 				BFC8D5F22EEDA414004235B2 /* Mist */,
+				BFC8D8402EEDF000004235B2 /* MistShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		BFC8D5F12EEDA414004235B2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BFC8D8322EEDF000004235B2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +227,43 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BFC8D8302EEDF000004235B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BFC8D8502EEDF000004235B2 /* MSTShareViewController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BFC8D8362EEDF000004235B2 /* Embed Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BFC8D8602EEDF000004235B2 /* MistShareExtension.appex in Embed Extensions */,
+			);
+			name = "Embed Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFC8D5EB2EEDA414004235B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BFC8D8402EEDF000004235B2;
+			remoteInfo = MistShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		BFC8D84A2EEDF000004235B2 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = BFC8D8402EEDF000004235B2 /* MistShareExtension */; targetProxy = BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		BFC8D5FC2EEDA415004235B2 /* Debug */ = {
@@ -324,6 +452,52 @@
 			};
 			name = Release;
 		};
+		BFC8D8422EEDF000004235B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZDY6H3JN3N;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Mist.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		BFC8D8432EEDF000004235B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZDY6H3JN3N;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Mist.ShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -341,6 +515,15 @@
 			buildConfigurations = (
 				BFC8D5FF2EEDA415004235B2 /* Debug */,
 				BFC8D6002EEDA415004235B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BFC8D8442EEDF000004235B2 /* Build configuration list for PBXNativeTarget "MistShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFC8D8422EEDF000004235B2 /* Debug */,
+				BFC8D8432EEDF000004235B2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

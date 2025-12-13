@@ -6,12 +6,14 @@
 //
 
 #import "MSTConfigManager.h"
+#import "MSTConstants.h"
 #import "MSTS3HostConfig.h"
 
 @interface MSTConfigManager ()
 
 @property(nonatomic, strong)
     NSMutableArray<MSTS3HostConfig *> *mutableHostConfigs;
+@property(nonatomic, strong) NSUserDefaults *userDefaults;
 
 @end
 
@@ -29,6 +31,12 @@
 - (instancetype)init {
   self = [super init];
   if (self) {
+    NSString *suiteName = kMSTAppGroupIdentifier;
+    NSUserDefaults *sharedDefaults =
+        [[NSUserDefaults alloc] initWithSuiteName:suiteName];
+    _userDefaults = sharedDefaults ?: [NSUserDefaults standardUserDefaults];
+    [self migrateFromStandardDefaultsIfNeeded];
+
     _mutableHostConfigs = [NSMutableArray array];
     _outputFormat = MSTOutputFormatURL;
     _compressFactor = 100;
@@ -126,34 +134,31 @@
 #pragma mark - Persistence
 
 - (void)saveConfigs {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-
   // Save host configs as array of dictionaries
   NSMutableArray *configDicts = [NSMutableArray array];
   for (MSTS3HostConfig *config in self.mutableHostConfigs) {
     [configDicts addObject:[config toDictionary]];
   }
-  [defaults setObject:configDicts forKey:kMSTHostConfigs];
+  [self.userDefaults setObject:configDicts forKey:kMSTHostConfigs];
 
   // Save default host ID
   if (self.defaultHost) {
-    [defaults setObject:self.defaultHost.identifier forKey:kMSTDefaultHostId];
+    [self.userDefaults setObject:self.defaultHost.identifier
+                           forKey:kMSTDefaultHostId];
   } else {
-    [defaults removeObjectForKey:kMSTDefaultHostId];
+    [self.userDefaults removeObjectForKey:kMSTDefaultHostId];
   }
 
   // Save other settings
-  [defaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
-  [defaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
+  [self.userDefaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
+  [self.userDefaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
 
-  [defaults synchronize];
+  [self.userDefaults synchronize];
 }
 
 - (void)loadConfigs {
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-
   // Load host configs
-  NSArray *configDicts = [defaults arrayForKey:kMSTHostConfigs];
+  NSArray *configDicts = [self.userDefaults arrayForKey:kMSTHostConfigs];
   [self.mutableHostConfigs removeAllObjects];
 
   for (NSDictionary *dict in configDicts) {
@@ -164,7 +169,7 @@
   }
 
   // Load default host
-  NSString *defaultHostId = [defaults stringForKey:kMSTDefaultHostId];
+  NSString *defaultHostId = [self.userDefaults stringForKey:kMSTDefaultHostId];
   if (defaultHostId) {
     self.defaultHost = [self hostConfigWithIdentifier:defaultHostId];
   } else if (self.mutableHostConfigs.count > 0) {
@@ -173,13 +178,52 @@
   }
 
   // Load other settings
-  if ([defaults objectForKey:kMSTOutputFormat]) {
-    self.outputFormat = [defaults integerForKey:kMSTOutputFormat];
+  if ([self.userDefaults objectForKey:kMSTOutputFormat]) {
+    self.outputFormat = [self.userDefaults integerForKey:kMSTOutputFormat];
   }
 
-  if ([defaults objectForKey:kMSTCompressFactor]) {
-    self.compressFactor = [defaults integerForKey:kMSTCompressFactor];
+  if ([self.userDefaults objectForKey:kMSTCompressFactor]) {
+    self.compressFactor = [self.userDefaults integerForKey:kMSTCompressFactor];
   }
+}
+
+- (void)migrateFromStandardDefaultsIfNeeded {
+  if (!self.userDefaults || self.userDefaults == [NSUserDefaults standardUserDefaults]) {
+    return;
+  }
+
+  // If shared defaults already contain data, skip migration
+  if ([self.userDefaults objectForKey:kMSTHostConfigs] ||
+      [self.userDefaults objectForKey:kMSTDefaultHostId] ||
+      [self.userDefaults objectForKey:kMSTOutputFormat] ||
+      [self.userDefaults objectForKey:kMSTCompressFactor]) {
+    return;
+  }
+
+  NSUserDefaults *standardDefaults = [NSUserDefaults standardUserDefaults];
+  NSArray *configDicts = [standardDefaults arrayForKey:kMSTHostConfigs];
+  NSString *defaultHostId = [standardDefaults stringForKey:kMSTDefaultHostId];
+  NSNumber *outputFormat = [standardDefaults objectForKey:kMSTOutputFormat];
+  NSNumber *compressFactor = [standardDefaults objectForKey:kMSTCompressFactor];
+
+  if (!configDicts && !defaultHostId && !outputFormat && !compressFactor) {
+    return;
+  }
+
+  if (configDicts) {
+    [self.userDefaults setObject:configDicts forKey:kMSTHostConfigs];
+  }
+  if (defaultHostId) {
+    [self.userDefaults setObject:defaultHostId forKey:kMSTDefaultHostId];
+  }
+  if (outputFormat) {
+    [self.userDefaults setObject:outputFormat forKey:kMSTOutputFormat];
+  }
+  if (compressFactor) {
+    [self.userDefaults setObject:compressFactor forKey:kMSTCompressFactor];
+  }
+
+  [self.userDefaults synchronize];
 }
 
 #pragma mark - URL Formatting

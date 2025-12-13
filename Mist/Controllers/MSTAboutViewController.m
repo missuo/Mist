@@ -12,13 +12,13 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(350, 240);
+    self.preferredContentSize = NSMakeSize(350, 280);
   }
   return self;
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 350, 240)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 350, 280)];
 }
 
 - (void)viewDidLoad {
@@ -93,11 +93,23 @@
   descLabel.editable = NO;
   [self.view addSubview:descLabel];
 
+  // Made with love message
+  NSTextField *madeWithLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(0, 38, self.view.bounds.size.width, 16)];
+  madeWithLabel.stringValue = @"Made with ❤️ from SF";
+  madeWithLabel.font = [NSFont systemFontOfSize:10];
+  madeWithLabel.textColor = [NSColor tertiaryLabelColor];
+  madeWithLabel.alignment = NSTextAlignmentCenter;
+  madeWithLabel.bezeled = NO;
+  madeWithLabel.drawsBackground = NO;
+  madeWithLabel.editable = NO;
+  [self.view addSubview:madeWithLabel];
+
   // Copyright (fixed at bottom)
   NSTextField *copyrightLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(0, 20, self.view.bounds.size.width, 18)];
-  copyrightLabel.stringValue = @"© 2025 Made with ❤️";
-  copyrightLabel.font = [NSFont systemFontOfSize:11];
+      initWithFrame:NSMakeRect(0, 20, self.view.bounds.size.width, 16)];
+  copyrightLabel.stringValue = @"© 2025 OwO Network, LLC";
+  copyrightLabel.font = [NSFont systemFontOfSize:10];
   copyrightLabel.textColor = [NSColor tertiaryLabelColor];
   copyrightLabel.alignment = NSTextAlignmentCenter;
   copyrightLabel.bezeled = NO;
