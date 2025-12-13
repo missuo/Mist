@@ -1,7 +1,7 @@
 # Mist
 
 <div align="center">
-  <img src="Mist/Resources/AppIcon.png" alt="Mist Icon" width="128" height="128">
+  <img src="Mist/Resources/Assets.xcassets/AppIcon.appiconset/mac1024.png" alt="Mist Icon" width="128" height="128">
   <p><strong>A native macOS application for seamless S3-compatible cloud storage management</strong></p>
 </div>
 
