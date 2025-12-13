@@ -23,3 +23,4 @@ NSNotificationName const MSTUploadDidStartNotification = @"MSTUploadDidStartNoti
 NSNotificationName const MSTUploadDidFinishNotification = @"MSTUploadDidFinishNotification";
 NSNotificationName const MSTUploadDidFailNotification = @"MSTUploadDidFailNotification";
 NSNotificationName const MSTUploadProgressNotification = @"MSTUploadProgressNotification";
+NSNotificationName const MSTiCloudDataDidChangeNotification = @"MSTiCloudDataDidChangeNotification";

@@ -351,6 +351,7 @@ static MSTAppDelegate *_shared = nil;
   self.hostsMenuItem.submenu = hostsSubmenu;
   [self.statusMenu addItem:self.hostsMenuItem];
   [self updateHostsMenu];
+  [self updateHostsMenuTitle];
 
   // Output format submenu
   self.formatMenuItem = [[NSMenuItem alloc] initWithTitle:@"Output Format"
@@ -393,6 +394,7 @@ static MSTAppDelegate *_shared = nil;
 
   self.formatMenuItem.submenu = formatSubmenu;
   [self.statusMenu addItem:self.formatMenuItem];
+  [self updateFormatMenuTitle];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
 
@@ -405,13 +407,6 @@ static MSTAppDelegate *_shared = nil;
   [self.statusMenu addItem:prefsItem];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
-
-  // About
-  NSMenuItem *aboutItem = [[NSMenuItem alloc] initWithTitle:@"About Mist"
-                                                     action:@selector(showAbout)
-                                              keyEquivalent:@""];
-  aboutItem.target = self;
-  [self.statusMenu addItem:aboutItem];
 
   // Quit
   NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit"
@@ -456,6 +451,40 @@ static MSTAppDelegate *_shared = nil;
   self.hostsMenuItem.submenu = hostsSubmenu;
 }
 
+- (void)updateHostsMenuTitle {
+  MSTS3HostConfig *defaultHost = [MSTConfigManager sharedManager].defaultHost;
+  if (defaultHost) {
+    self.hostsMenuItem.title = [NSString stringWithFormat:@"Host: %@", defaultHost.name];
+  } else {
+    self.hostsMenuItem.title = @"Host";
+  }
+}
+
+- (void)updateFormatMenuTitle {
+  MSTOutputFormat format = [MSTConfigManager sharedManager].outputFormat;
+  NSString *formatName;
+  
+  switch (format) {
+    case MSTOutputFormatURL:
+      formatName = @"URL";
+      break;
+    case MSTOutputFormatMarkdown:
+      formatName = @"Markdown";
+      break;
+    case MSTOutputFormatHTML:
+      formatName = @"HTML";
+      break;
+    case MSTOutputFormatUBB:
+      formatName = @"UBB";
+      break;
+    default:
+      formatName = @"URL";
+      break;
+  }
+  
+  self.formatMenuItem.title = [NSString stringWithFormat:@"Output Format: %@", formatName];
+}
+
 #pragma mark - Notifications
 
 - (void)registerNotifications {
@@ -486,6 +515,7 @@ static MSTAppDelegate *_shared = nil;
 - (void)configDidChange:(NSNotification *)notification {
   dispatch_async(dispatch_get_main_queue(), ^{
     [self updateHostsMenu];
+    [self updateHostsMenuTitle];
   });
 }
 
@@ -637,15 +667,13 @@ static MSTAppDelegate *_shared = nil;
 - (void)selectHost:(NSMenuItem *)sender {
   NSString *identifier = sender.representedObject;
   [[MSTConfigManager sharedManager] setDefaultHostWithIdentifier:identifier];
+  [self updateHostsMenuTitle];
 }
 
 - (void)setOutputFormat:(NSMenuItem *)sender {
   [MSTConfigManager sharedManager].outputFormat = sender.tag;
   [[MSTConfigManager sharedManager] saveConfigs];
-}
-
-- (void)showAbout {
-  [[NSApplication sharedApplication] orderFrontStandardAboutPanel:nil];
+  [self updateFormatMenuTitle];
 }
 
 - (void)quit {

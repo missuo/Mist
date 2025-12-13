@@ -9,6 +9,7 @@
 #import "MSTConstants.h"
 
 @class MSTS3HostConfig;
+@class MSTiCloudSyncManager;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -21,6 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) MSTOutputFormat outputFormat;
 @property (nonatomic, assign) NSInteger compressFactor; // 0 = no compression, 10-90 = quality
 @property (nonatomic, assign) BOOL removeEXIF;
+@property (nonatomic, assign) BOOL iCloudSyncEnabled;
+@property (nonatomic, assign, readonly) BOOL iCloudAvailable;
+@property (nonatomic, strong, readonly) MSTiCloudSyncManager *iCloudSyncManager;
 
 - (void)addHostConfig:(MSTS3HostConfig *)config;
 - (void)removeHostConfig:(MSTS3HostConfig *)config;

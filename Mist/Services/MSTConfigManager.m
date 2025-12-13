@@ -8,12 +8,14 @@
 #import "MSTConfigManager.h"
 #import "MSTConstants.h"
 #import "MSTS3HostConfig.h"
+#import "MSTiCloudSyncManager.h"
 
 @interface MSTConfigManager ()
 
 @property(nonatomic, strong)
     NSMutableArray<MSTS3HostConfig *> *mutableHostConfigs;
 @property(nonatomic, strong) NSUserDefaults *userDefaults;
+@property(nonatomic, strong) MSTiCloudSyncManager *iCloudSyncManager;
 
 @end
 
@@ -37,19 +39,48 @@
     _userDefaults = sharedDefaults ?: [NSUserDefaults standardUserDefaults];
     [self migrateFromStandardDefaultsIfNeeded];
 
+    _iCloudSyncManager = [MSTiCloudSyncManager sharedManager];
     _mutableHostConfigs = [NSMutableArray array];
     _outputFormat = MSTOutputFormatURL;
     _compressFactor = 0; // 0 = no compression by default
     _removeEXIF = NO;
     [self loadConfigs];
+    
+    // Observe iCloud changes
+    [[NSNotificationCenter defaultCenter]
+        addObserver:self
+           selector:@selector(handleiCloudDataChange:)
+               name:MSTiCloudDataDidChangeNotification
+             object:nil];
   }
   return self;
+}
+
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - Properties
 
 - (NSArray<MSTS3HostConfig *> *)hostConfigs {
   return [self.mutableHostConfigs copy];
+}
+
+- (BOOL)iCloudSyncEnabled {
+  return self.iCloudSyncManager.iCloudSyncEnabled;
+}
+
+- (void)setICloudSyncEnabled:(BOOL)iCloudSyncEnabled {
+  self.iCloudSyncManager.iCloudSyncEnabled = iCloudSyncEnabled;
+  
+  if (iCloudSyncEnabled) {
+    // Sync current configs to iCloud
+    [self syncToiCloud];
+  }
+}
+
+- (BOOL)iCloudAvailable {
+  return self.iCloudSyncManager.iCloudAvailable;
 }
 
 #pragma mark - Host Config Management
@@ -156,10 +187,18 @@
   [self.userDefaults setBool:self.removeEXIF forKey:kMSTRemoveEXIF];
 
   [self.userDefaults synchronize];
+  
+  // Sync to iCloud if enabled
+  [self syncToiCloud];
 }
 
 - (void)loadConfigs {
-  // Load host configs
+  // Try to load from iCloud first if enabled
+  if (self.iCloudSyncEnabled && self.iCloudAvailable) {
+    [self loadFromiCloudIfAvailable];
+  }
+  
+  // Load host configs from local storage
   NSArray *configDicts = [self.userDefaults arrayForKey:kMSTHostConfigs];
   [self.mutableHostConfigs removeAllObjects];
 
@@ -247,6 +286,96 @@
   default:
     return url;
   }
+}
+
+#pragma mark - iCloud Sync
+
+- (void)syncToiCloud {
+  if (!self.iCloudSyncEnabled || !self.iCloudAvailable) {
+    return;
+  }
+  
+  // Sync host configs
+  NSMutableArray *configDicts = [NSMutableArray array];
+  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+    [configDicts addObject:[config toDictionary]];
+  }
+  [self.iCloudSyncManager syncHostConfigs:configDicts];
+  
+  // Sync default host ID
+  [self.iCloudSyncManager syncDefaultHostId:self.defaultHost.identifier];
+  
+  // Sync other settings
+  [self.iCloudSyncManager syncOutputFormat:self.outputFormat];
+  [self.iCloudSyncManager syncCompressFactor:self.compressFactor];
+  [self.iCloudSyncManager syncRemoveEXIF:self.removeEXIF];
+}
+
+- (void)loadFromiCloudIfAvailable {
+  if (!self.iCloudSyncEnabled || !self.iCloudAvailable) {
+    return;
+  }
+  
+  // Load host configs from iCloud
+  NSArray *cloudConfigDicts = [self.iCloudSyncManager getHostConfigs];
+  if (cloudConfigDicts && cloudConfigDicts.count > 0) {
+    [self.mutableHostConfigs removeAllObjects];
+    for (NSDictionary *dict in cloudConfigDicts) {
+      MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
+      if (config) {
+        [self.mutableHostConfigs addObject:config];
+      }
+    }
+    
+    // Save to local storage
+    [self.userDefaults setObject:cloudConfigDicts forKey:kMSTHostConfigs];
+  }
+  
+  // Load default host ID from iCloud
+  NSString *cloudDefaultHostId = [self.iCloudSyncManager getDefaultHostId];
+  if (cloudDefaultHostId) {
+    self.defaultHost = [self hostConfigWithIdentifier:cloudDefaultHostId];
+    if (self.defaultHost) {
+      [self.userDefaults setObject:cloudDefaultHostId forKey:kMSTDefaultHostId];
+    }
+  }
+  
+  // Load output format from iCloud
+  NSNumber *cloudOutputFormat = [self.iCloudSyncManager getOutputFormat];
+  if (cloudOutputFormat) {
+    self.outputFormat = [cloudOutputFormat integerValue];
+    [self.userDefaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
+  }
+  
+  // Load compress factor from iCloud
+  NSNumber *cloudCompressFactor = [self.iCloudSyncManager getCompressFactor];
+  if (cloudCompressFactor) {
+    self.compressFactor = [cloudCompressFactor integerValue];
+    [self.userDefaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
+  }
+  
+  // Load remove EXIF from iCloud
+  NSNumber *cloudRemoveEXIF = [self.iCloudSyncManager getRemoveEXIF];
+  if (cloudRemoveEXIF) {
+    self.removeEXIF = [cloudRemoveEXIF boolValue];
+    [self.userDefaults setBool:self.removeEXIF forKey:kMSTRemoveEXIF];
+  }
+  
+  [self.userDefaults synchronize];
+}
+
+- (void)handleiCloudDataChange:(NSNotification *)notification {
+  if (!self.iCloudSyncEnabled) {
+    return;
+  }
+  
+  // Reload configs from iCloud
+  [self loadFromiCloudIfAvailable];
+  
+  // Post notification that config changed
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
 }
 
 @end
