@@ -11,25 +11,49 @@
 		BFC8D8602EEDF000004235B2 /* MistShareExtension.appex in Embed Extensions */ = {isa = PBXBuildFile; fileRef = BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFC8D5EB2EEDA414004235B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BFC8D8402EEDF000004235B2;
+			remoteInfo = MistShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BFC8D8362EEDF000004235B2 /* Embed Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BFC8D8602EEDF000004235B2 /* MistShareExtension.appex in Embed Extensions */,
+			);
+			name = "Embed Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		BFC8D5F32EEDA414004235B2 /* Mist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mist.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = MistShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		BFC8D8012EEDF000004235B2 /* MSTUploadHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTUploadHelper.h; sourceTree = "<group>"; };
-		BFC8D8022EEDF000004235B2 /* MSTUploadHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTUploadHelper.m; sourceTree = "<group>"; };
+		BFC8D8012EEDF000004235B2 /* Mist/Services/MSTUploadHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTUploadHelper.h; sourceTree = "<group>"; };
+		BFC8D8022EEDF000004235B2 /* Mist/Services/MSTUploadHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTUploadHelper.m; sourceTree = "<group>"; };
 		BFC8D8032EEDF000004235B2 /* MSTShareViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSTShareViewController.h; sourceTree = "<group>"; };
 		BFC8D8042EEDF000004235B2 /* MSTShareViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSTShareViewController.m; sourceTree = "<group>"; };
 		BFC8D8052EEDF000004235B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BFC8D8062EEDF000004235B2 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
-		BFC8D80F2EEDF000004235B2 /* MSTConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/App/MSTConstants.h; sourceTree = "<group>"; };
-		BFC8D8102EEDF000004235B2 /* MSTConstants.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/App/MSTConstants.m; sourceTree = "<group>"; };
-		BFC8D8112EEDF000004235B2 /* MSTConfigManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTConfigManager.h; sourceTree = "<group>"; };
-		BFC8D8122EEDF000004235B2 /* MSTConfigManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTConfigManager.m; sourceTree = "<group>"; };
-		BFC8D8132EEDF000004235B2 /* MSTS3Uploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTS3Uploader.h; sourceTree = "<group>"; };
-		BFC8D8142EEDF000004235B2 /* MSTS3Uploader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTS3Uploader.m; sourceTree = "<group>"; };
-		BFC8D8152EEDF000004235B2 /* MSTS3HostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3HostConfig.h; sourceTree = "<group>"; };
-		BFC8D8162EEDF000004235B2 /* MSTS3HostConfig.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3HostConfig.m; sourceTree = "<group>"; };
-		BFC8D8172EEDF000004235B2 /* MSTS3Region.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3Region.h; sourceTree = "<group>"; };
-		BFC8D8182EEDF000004235B2 /* MSTS3Region.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3Region.m; sourceTree = "<group>"; };
+		BFC8D80D2EEDF000004235B2 /* MistShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MistShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFC8D80F2EEDF000004235B2 /* Mist/App/MSTConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/App/MSTConstants.h; sourceTree = "<group>"; };
+		BFC8D8102EEDF000004235B2 /* Mist/App/MSTConstants.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/App/MSTConstants.m; sourceTree = "<group>"; };
+		BFC8D8112EEDF000004235B2 /* Mist/Services/MSTConfigManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTConfigManager.h; sourceTree = "<group>"; };
+		BFC8D8122EEDF000004235B2 /* Mist/Services/MSTConfigManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTConfigManager.m; sourceTree = "<group>"; };
+		BFC8D8132EEDF000004235B2 /* Mist/Services/MSTS3Uploader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Services/MSTS3Uploader.h; sourceTree = "<group>"; };
+		BFC8D8142EEDF000004235B2 /* Mist/Services/MSTS3Uploader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Services/MSTS3Uploader.m; sourceTree = "<group>"; };
+		BFC8D8152EEDF000004235B2 /* Mist/Models/MSTS3HostConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3HostConfig.h; sourceTree = "<group>"; };
+		BFC8D8162EEDF000004235B2 /* Mist/Models/MSTS3HostConfig.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3HostConfig.m; sourceTree = "<group>"; };
+		BFC8D8172EEDF000004235B2 /* Mist/Models/MSTS3Region.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mist/Models/MSTS3Region.h; sourceTree = "<group>"; };
+		BFC8D8182EEDF000004235B2 /* Mist/Models/MSTS3Region.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Mist/Models/MSTS3Region.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -93,18 +117,18 @@
 		BFC8D8202EEDF000004235B2 /* SharedSources */ = {
 			isa = PBXGroup;
 			children = (
-				BFC8D80F2EEDF000004235B2 /* MSTConstants.h */,
-				BFC8D8102EEDF000004235B2 /* MSTConstants.m */,
-				BFC8D8112EEDF000004235B2 /* MSTConfigManager.h */,
-				BFC8D8122EEDF000004235B2 /* MSTConfigManager.m */,
-				BFC8D8132EEDF000004235B2 /* MSTS3Uploader.h */,
-				BFC8D8142EEDF000004235B2 /* MSTS3Uploader.m */,
-				BFC8D8152EEDF000004235B2 /* MSTS3HostConfig.h */,
-				BFC8D8162EEDF000004235B2 /* MSTS3HostConfig.m */,
-				BFC8D8172EEDF000004235B2 /* MSTS3Region.h */,
-				BFC8D8182EEDF000004235B2 /* MSTS3Region.m */,
-				BFC8D8012EEDF000004235B2 /* MSTUploadHelper.h */,
-				BFC8D8022EEDF000004235B2 /* MSTUploadHelper.m */,
+				BFC8D80F2EEDF000004235B2 /* Mist/App/MSTConstants.h */,
+				BFC8D8102EEDF000004235B2 /* Mist/App/MSTConstants.m */,
+				BFC8D8112EEDF000004235B2 /* Mist/Services/MSTConfigManager.h */,
+				BFC8D8122EEDF000004235B2 /* Mist/Services/MSTConfigManager.m */,
+				BFC8D8132EEDF000004235B2 /* Mist/Services/MSTS3Uploader.h */,
+				BFC8D8142EEDF000004235B2 /* Mist/Services/MSTS3Uploader.m */,
+				BFC8D8152EEDF000004235B2 /* Mist/Models/MSTS3HostConfig.h */,
+				BFC8D8162EEDF000004235B2 /* Mist/Models/MSTS3HostConfig.m */,
+				BFC8D8172EEDF000004235B2 /* Mist/Models/MSTS3Region.h */,
+				BFC8D8182EEDF000004235B2 /* Mist/Models/MSTS3Region.m */,
+				BFC8D8012EEDF000004235B2 /* Mist/Services/MSTUploadHelper.h */,
+				BFC8D8022EEDF000004235B2 /* Mist/Services/MSTUploadHelper.m */,
 			);
 			name = SharedSources;
 			sourceTree = "<group>";
@@ -237,32 +261,12 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		BFC8D8362EEDF000004235B2 /* Embed Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				BFC8D8602EEDF000004235B2 /* MistShareExtension.appex in Embed Extensions */,
-			);
-			name = "Embed Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BFC8D5EB2EEDA414004235B2 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BFC8D8402EEDF000004235B2;
-			remoteInfo = MistShareExtension;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXTargetDependency section */
-		BFC8D84A2EEDF000004235B2 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = BFC8D8402EEDF000004235B2 /* MistShareExtension */; targetProxy = BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */; };
+		BFC8D84A2EEDF000004235B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BFC8D8402EEDF000004235B2 /* MistShareExtension */;
+			targetProxy = BFC8D8482EEDF000004235B2 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */

@@ -16,6 +16,11 @@
 @property(nonatomic, strong) NSTextField *previewLabel;
 @property(nonatomic, strong) NSButton *launchAtLoginCheckbox;
 
+// Image processing
+@property(nonatomic, strong) NSSlider *compressionSlider;
+@property(nonatomic, strong) NSTextField *compressionLabel;
+@property(nonatomic, strong) NSButton *removeEXIFCheckbox;
+
 @end
 
 @implementation MSTGeneralViewController
@@ -23,13 +28,13 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(450, 260);
+    self.preferredContentSize = NSMakeSize(450, 450);
   }
   return self;
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 450, 260)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 450, 450)];
 }
 
 - (void)viewDidLoad {
@@ -131,6 +136,77 @@
   self.launchAtLoginCheckbox.target = self;
   self.launchAtLoginCheckbox.action = @selector(launchAtLoginChanged:);
   [self.view addSubview:self.launchAtLoginCheckbox];
+  y -= 40;
+  
+  // Image Processing section
+  NSTextField *imageTitle =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(padding, y, 200, 20)];
+  imageTitle.stringValue = @"Image Processing";
+  imageTitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightSemibold];
+  imageTitle.textColor = [NSColor labelColor];
+  imageTitle.bezeled = NO;
+  imageTitle.drawsBackground = NO;
+  imageTitle.editable = NO;
+  [self.view addSubview:imageTitle];
+  y -= 30;
+  
+  // Compression quality label and value
+  NSTextField *compressionTitle =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(padding, y, 200, 17)];
+  compressionTitle.stringValue = @"Compression Quality:";
+  compressionTitle.font = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+  compressionTitle.textColor = [NSColor secondaryLabelColor];
+  compressionTitle.bezeled = NO;
+  compressionTitle.drawsBackground = NO;
+  compressionTitle.editable = NO;
+  [self.view addSubview:compressionTitle];
+  
+  self.compressionLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(padding + contentWidth - 100, y, 100, 17)];
+  self.compressionLabel.font = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+  self.compressionLabel.textColor = [NSColor secondaryLabelColor];
+  self.compressionLabel.bezeled = NO;
+  self.compressionLabel.drawsBackground = NO;
+  self.compressionLabel.editable = NO;
+  self.compressionLabel.alignment = NSTextAlignmentRight;
+  [self.view addSubview:self.compressionLabel];
+  y -= 25;
+  
+  // Compression slider (0 = off, 10-90 = quality)
+  self.compressionSlider =
+      [[NSSlider alloc] initWithFrame:NSMakeRect(padding, y, contentWidth, 20)];
+  self.compressionSlider.minValue = 0;
+  self.compressionSlider.maxValue = 90;
+  self.compressionSlider.numberOfTickMarks = 10;
+  self.compressionSlider.allowsTickMarkValuesOnly = YES;
+  self.compressionSlider.target = self;
+  self.compressionSlider.action = @selector(compressionChanged:);
+  [self.view addSubview:self.compressionSlider];
+  y -= 35;
+  
+  // Remove EXIF checkbox
+  self.removeEXIFCheckbox =
+      [[NSButton alloc] initWithFrame:NSMakeRect(padding, y, contentWidth, 20)];
+  self.removeEXIFCheckbox.title = @"Remove EXIF metadata from images";
+  [self.removeEXIFCheckbox setButtonType:NSButtonTypeSwitch];
+  self.removeEXIFCheckbox.target = self;
+  self.removeEXIFCheckbox.action = @selector(removeEXIFChanged:);
+  [self.view addSubview:self.removeEXIFCheckbox];
+  y -= 30;
+  
+  // Image processing hint
+  NSTextField *imageHintLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(padding, y - 10, contentWidth, 40)];
+  imageHintLabel.stringValue = @"Compression applies only to images (JPG, PNG, GIF, BMP, TIFF, etc.). "
+                                @"Set to 0 to disable. EXIF removal protects privacy.";
+  imageHintLabel.font = [NSFont systemFontOfSize:11];
+  imageHintLabel.textColor = [NSColor tertiaryLabelColor];
+  imageHintLabel.bezeled = NO;
+  imageHintLabel.drawsBackground = NO;
+  imageHintLabel.editable = NO;
+  imageHintLabel.lineBreakMode = NSLineBreakByWordWrapping;
+  imageHintLabel.maximumNumberOfLines = 2;
+  [self.view addSubview:imageHintLabel];
 }
 
 - (void)loadSettings {
@@ -148,6 +224,14 @@
     self.launchAtLoginCheckbox.enabled = NO;
     self.launchAtLoginCheckbox.title = @"Launch at Login (requires macOS 13+)";
   }
+  
+  // Load image processing settings
+  NSInteger compressionFactor = [MSTConfigManager sharedManager].compressFactor;
+  self.compressionSlider.integerValue = compressionFactor;
+  [self updateCompressionLabel];
+  
+  BOOL removeEXIF = [MSTConfigManager sharedManager].removeEXIF;
+  self.removeEXIFCheckbox.state = removeEXIF ? NSControlStateValueOn : NSControlStateValueOff;
 }
 
 - (void)outputFormatChanged:(NSSegmentedControl *)sender {
@@ -199,6 +283,28 @@
                          : NSControlStateValueOff;
     }
   }
+}
+
+- (void)compressionChanged:(NSSlider *)sender {
+  NSInteger value = sender.integerValue;
+  [MSTConfigManager sharedManager].compressFactor = value;
+  [[MSTConfigManager sharedManager] saveConfigs];
+  [self updateCompressionLabel];
+}
+
+- (void)updateCompressionLabel {
+  NSInteger value = self.compressionSlider.integerValue;
+  if (value == 0) {
+    self.compressionLabel.stringValue = @"Off";
+  } else {
+    self.compressionLabel.stringValue = [NSString stringWithFormat:@"%ld%%", (long)value];
+  }
+}
+
+- (void)removeEXIFChanged:(NSButton *)sender {
+  BOOL enabled = (sender.state == NSControlStateValueOn);
+  [MSTConfigManager sharedManager].removeEXIF = enabled;
+  [[MSTConfigManager sharedManager] saveConfigs];
 }
 
 @end

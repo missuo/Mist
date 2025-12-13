@@ -331,6 +331,8 @@
     return @"cloudflare";
   case MSTS3ProviderTypeBackblazeB2:
     return @"backblaze";
+  case MSTS3ProviderTypeMinIO:
+    return @"minio";
   case MSTS3ProviderTypeCustom:
   default:
     return @"custom";

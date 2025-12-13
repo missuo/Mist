@@ -19,7 +19,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong, readonly) NSArray<MSTS3HostConfig *> *hostConfigs;
 @property (nonatomic, strong, nullable) MSTS3HostConfig *defaultHost;
 @property (nonatomic, assign) MSTOutputFormat outputFormat;
-@property (nonatomic, assign) NSInteger compressFactor;
+@property (nonatomic, assign) NSInteger compressFactor; // 0 = no compression, 10-90 = quality
+@property (nonatomic, assign) BOOL removeEXIF;
 
 - (void)addHostConfig:(MSTS3HostConfig *)config;
 - (void)removeHostConfig:(MSTS3HostConfig *)config;

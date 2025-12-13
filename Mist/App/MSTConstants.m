@@ -13,6 +13,7 @@ NSString * const kMSTHostConfigs = @"Mist_HostConfigs";
 NSString * const kMSTDefaultHostId = @"Mist_DefaultHostId";
 NSString * const kMSTOutputFormat = @"Mist_OutputFormat";
 NSString * const kMSTCompressFactor = @"Mist_CompressFactor";
+NSString * const kMSTRemoveEXIF = @"Mist_RemoveEXIF";
 NSString * const kMSTAppGroupIdentifier = @"group.nz.owo.Mist";
 
 #pragma mark - Notifications

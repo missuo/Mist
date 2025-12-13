@@ -39,7 +39,8 @@
 
     _mutableHostConfigs = [NSMutableArray array];
     _outputFormat = MSTOutputFormatURL;
-    _compressFactor = 100;
+    _compressFactor = 0; // 0 = no compression by default
+    _removeEXIF = NO;
     [self loadConfigs];
   }
   return self;
@@ -152,6 +153,7 @@
   // Save other settings
   [self.userDefaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
   [self.userDefaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
+  [self.userDefaults setBool:self.removeEXIF forKey:kMSTRemoveEXIF];
 
   [self.userDefaults synchronize];
 }
@@ -185,6 +187,10 @@
   if ([self.userDefaults objectForKey:kMSTCompressFactor]) {
     self.compressFactor = [self.userDefaults integerForKey:kMSTCompressFactor];
   }
+  
+  if ([self.userDefaults objectForKey:kMSTRemoveEXIF]) {
+    self.removeEXIF = [self.userDefaults boolForKey:kMSTRemoveEXIF];
+  }
 }
 
 - (void)migrateFromStandardDefaultsIfNeeded {
@@ -196,7 +202,8 @@
   if ([self.userDefaults objectForKey:kMSTHostConfigs] ||
       [self.userDefaults objectForKey:kMSTDefaultHostId] ||
       [self.userDefaults objectForKey:kMSTOutputFormat] ||
-      [self.userDefaults objectForKey:kMSTCompressFactor]) {
+      [self.userDefaults objectForKey:kMSTCompressFactor] ||
+      [self.userDefaults objectForKey:kMSTRemoveEXIF]) {
     return;
   }
 

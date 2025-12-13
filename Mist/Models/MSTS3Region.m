@@ -156,6 +156,10 @@
   case MSTS3ProviderTypeBackblazeB2:
     return @[];
 
+  case MSTS3ProviderTypeMinIO:
+    return @[ [[MSTS3Region alloc] initWithIdentifier:@"us-east-1"
+                                          displayName:@"US East 1 (Default)"] ];
+
   case MSTS3ProviderTypeCustom:
     return @[ [[MSTS3Region alloc] initWithIdentifier:@"us-east-1"
                                           displayName:@"US East 1 (Default)"] ];
@@ -173,6 +177,8 @@
     return @"Cloudflare R2";
   case MSTS3ProviderTypeBackblazeB2:
     return @"Backblaze B2";
+  case MSTS3ProviderTypeMinIO:
+    return @"MinIO";
   case MSTS3ProviderTypeCustom:
     return @"Custom S3";
   }
@@ -189,6 +195,8 @@
     return @"auto";
   case MSTS3ProviderTypeBackblazeB2:
     return @"";
+  case MSTS3ProviderTypeMinIO:
+    return @"us-east-1";
   case MSTS3ProviderTypeCustom:
     return @"us-east-1";
   }

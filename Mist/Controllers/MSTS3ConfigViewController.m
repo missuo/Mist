@@ -125,7 +125,7 @@
   self.providerPopup = [[NSPopUpButton alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
   for (MSTS3ProviderType type = MSTS3ProviderTypeAmazonS3;
-       type <= MSTS3ProviderTypeCustom; type++) {
+       type <= MSTS3ProviderTypeMinIO; type++) {
     [self.providerPopup
         addItemWithTitle:[MSTS3Region displayNameForProvider:type]];
     self.providerPopup.lastItem.tag = type;
@@ -370,6 +370,7 @@
 
   [self updateFieldVisibility];
   [self updateProviderIcon:self.config.providerType];
+  [self updateEndpointPlaceholder:self.config.providerType];
   self.statusLabel.stringValue = @"";
 
   // Scroll to top of form so Name field is visible
@@ -382,6 +383,7 @@
   [self updateRegionsForProvider:provider];
   [self updateFieldVisibility];
   [self updateProviderIcon:provider];
+  [self updateEndpointPlaceholder:provider];
 
   // Auto-select first region for providers with fixed regions (Wasabi, R2)
   if (provider == MSTS3ProviderTypeWasabi ||
@@ -405,12 +407,40 @@
   case MSTS3ProviderTypeBackblazeB2:
     iconName = @"backblaze";
     break;
+  case MSTS3ProviderTypeMinIO:
+    iconName = @"minio";
+    break;
   case MSTS3ProviderTypeCustom:
   default:
     iconName = @"custom";
     break;
   }
   self.providerIconView.image = [NSImage imageNamed:iconName];
+}
+
+- (void)updateEndpointPlaceholder:(MSTS3ProviderType)provider {
+  NSString *placeholder;
+  switch (provider) {
+  case MSTS3ProviderTypeWasabi:
+    placeholder = @"s3.us-east-1.wasabisys.com";
+    break;
+  case MSTS3ProviderTypeCloudflareR2:
+    placeholder = @"<account-id>.r2.cloudflarestorage.com";
+    break;
+  case MSTS3ProviderTypeBackblazeB2:
+    placeholder = @"s3.us-west-004.backblazeb2.com";
+    break;
+  case MSTS3ProviderTypeMinIO:
+    placeholder = @"minio.example.com:9000";
+    break;
+  case MSTS3ProviderTypeCustom:
+    placeholder = @"s3.example.com";
+    break;
+  default:
+    placeholder = @"";
+    break;
+  }
+  self.endpointField.placeholderString = placeholder;
 }
 
 - (void)updateRegionsForProvider:(MSTS3ProviderType)provider {
