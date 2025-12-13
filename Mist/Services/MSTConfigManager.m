@@ -1,0 +1,201 @@
+//
+//  MSTConfigManager.m
+//  Mist
+//
+//  Created by Vincent Yang on 12/13/25.
+//
+
+#import "MSTConfigManager.h"
+#import "MSTS3HostConfig.h"
+
+@interface MSTConfigManager ()
+
+@property(nonatomic, strong)
+    NSMutableArray<MSTS3HostConfig *> *mutableHostConfigs;
+
+@end
+
+@implementation MSTConfigManager
+
++ (MSTConfigManager *)sharedManager {
+  static MSTConfigManager *instance = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    instance = [[MSTConfigManager alloc] init];
+  });
+  return instance;
+}
+
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _mutableHostConfigs = [NSMutableArray array];
+    _outputFormat = MSTOutputFormatURL;
+    _compressFactor = 100;
+    [self loadConfigs];
+  }
+  return self;
+}
+
+#pragma mark - Properties
+
+- (NSArray<MSTS3HostConfig *> *)hostConfigs {
+  return [self.mutableHostConfigs copy];
+}
+
+#pragma mark - Host Config Management
+
+- (void)addHostConfig:(MSTS3HostConfig *)config {
+  [self.mutableHostConfigs addObject:config];
+
+  // If this is the first config, set it as default
+  if (self.mutableHostConfigs.count == 1) {
+    config.isDefault = YES;
+    self.defaultHost = config;
+  }
+
+  [self saveConfigs];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
+}
+
+- (void)removeHostConfig:(MSTS3HostConfig *)config {
+  [self.mutableHostConfigs removeObject:config];
+
+  // If we removed the default, set a new default
+  if (config.isDefault && self.mutableHostConfigs.count > 0) {
+    MSTS3HostConfig *newDefault = self.mutableHostConfigs.firstObject;
+    newDefault.isDefault = YES;
+    self.defaultHost = newDefault;
+  } else if (self.mutableHostConfigs.count == 0) {
+    self.defaultHost = nil;
+  }
+
+  [self saveConfigs];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
+}
+
+- (void)updateHostConfig:(MSTS3HostConfig *)config {
+  NSUInteger index = [self.mutableHostConfigs
+      indexOfObjectPassingTest:^BOOL(MSTS3HostConfig *obj, NSUInteger idx,
+                                     BOOL *stop) {
+        return [obj.identifier isEqualToString:config.identifier];
+      }];
+
+  if (index != NSNotFound) {
+    self.mutableHostConfigs[index] = config;
+  }
+
+  [self saveConfigs];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
+}
+
+- (nullable MSTS3HostConfig *)hostConfigWithIdentifier:(NSString *)identifier {
+  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+    if ([config.identifier isEqualToString:identifier]) {
+      return config;
+    }
+  }
+  return nil;
+}
+
+- (void)setDefaultHostWithIdentifier:(NSString *)identifier {
+  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+    if ([config.identifier isEqualToString:identifier]) {
+      // Clear old default
+      for (MSTS3HostConfig *c in self.mutableHostConfigs) {
+        c.isDefault = NO;
+      }
+      config.isDefault = YES;
+      self.defaultHost = config;
+      break;
+    }
+  }
+
+  [self saveConfigs];
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
+}
+
+#pragma mark - Persistence
+
+- (void)saveConfigs {
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+  // Save host configs as array of dictionaries
+  NSMutableArray *configDicts = [NSMutableArray array];
+  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+    [configDicts addObject:[config toDictionary]];
+  }
+  [defaults setObject:configDicts forKey:kMSTHostConfigs];
+
+  // Save default host ID
+  if (self.defaultHost) {
+    [defaults setObject:self.defaultHost.identifier forKey:kMSTDefaultHostId];
+  } else {
+    [defaults removeObjectForKey:kMSTDefaultHostId];
+  }
+
+  // Save other settings
+  [defaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
+  [defaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
+
+  [defaults synchronize];
+}
+
+- (void)loadConfigs {
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+  // Load host configs
+  NSArray *configDicts = [defaults arrayForKey:kMSTHostConfigs];
+  [self.mutableHostConfigs removeAllObjects];
+
+  for (NSDictionary *dict in configDicts) {
+    MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
+    if (config) {
+      [self.mutableHostConfigs addObject:config];
+    }
+  }
+
+  // Load default host
+  NSString *defaultHostId = [defaults stringForKey:kMSTDefaultHostId];
+  if (defaultHostId) {
+    self.defaultHost = [self hostConfigWithIdentifier:defaultHostId];
+  } else if (self.mutableHostConfigs.count > 0) {
+    self.defaultHost = self.mutableHostConfigs.firstObject;
+    self.defaultHost.isDefault = YES;
+  }
+
+  // Load other settings
+  if ([defaults objectForKey:kMSTOutputFormat]) {
+    self.outputFormat = [defaults integerForKey:kMSTOutputFormat];
+  }
+
+  if ([defaults objectForKey:kMSTCompressFactor]) {
+    self.compressFactor = [defaults integerForKey:kMSTCompressFactor];
+  }
+}
+
+#pragma mark - URL Formatting
+
+- (NSString *)formatURL:(NSString *)url {
+  switch (self.outputFormat) {
+  case MSTOutputFormatMarkdown:
+    return [NSString stringWithFormat:@"![image](%@)", url];
+  case MSTOutputFormatHTML:
+    return [NSString stringWithFormat:@"<img src=\"%@\" />", url];
+  case MSTOutputFormatUBB:
+    return [NSString stringWithFormat:@"[img]%@[/img]", url];
+  case MSTOutputFormatURL:
+  default:
+    return url;
+  }
+}
+
+@end
