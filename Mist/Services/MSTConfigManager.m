@@ -316,26 +316,43 @@
     return;
   }
   
+  NSLog(@"[Config] Loading data from iCloud...");
+  BOOL hasCloudData = NO;
+  
   // Load host configs from iCloud
   NSArray *cloudConfigDicts = [self.iCloudSyncManager getHostConfigs];
   if (cloudConfigDicts && cloudConfigDicts.count > 0) {
-    [self.mutableHostConfigs removeAllObjects];
-    for (NSDictionary *dict in cloudConfigDicts) {
-      MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
-      if (config) {
-        [self.mutableHostConfigs addObject:config];
-      }
-    }
+    NSLog(@"[Config] Found %lu host configs in iCloud", (unsigned long)cloudConfigDicts.count);
+    hasCloudData = YES;
     
-    // Save to local storage
-    [self.userDefaults setObject:cloudConfigDicts forKey:kMSTHostConfigs];
+    // Only update if we have no local data or cloud data is newer
+    BOOL shouldUpdate = (self.mutableHostConfigs.count == 0);
+    
+    if (shouldUpdate) {
+      [self.mutableHostConfigs removeAllObjects];
+      for (NSDictionary *dict in cloudConfigDicts) {
+        MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
+        if (config) {
+          [self.mutableHostConfigs addObject:config];
+        }
+      }
+      
+      // Save to local storage
+      [self.userDefaults setObject:cloudConfigDicts forKey:kMSTHostConfigs];
+      NSLog(@"[Config] Updated local storage with iCloud host configs");
+    }
+  } else {
+    NSLog(@"[Config] No host configs found in iCloud");
   }
   
   // Load default host ID from iCloud
   NSString *cloudDefaultHostId = [self.iCloudSyncManager getDefaultHostId];
   if (cloudDefaultHostId) {
+    NSLog(@"[Config] Found default host ID in iCloud: %@", cloudDefaultHostId);
+    hasCloudData = YES;
     self.defaultHost = [self hostConfigWithIdentifier:cloudDefaultHostId];
     if (self.defaultHost) {
+      self.defaultHost.isDefault = YES;
       [self.userDefaults setObject:cloudDefaultHostId forKey:kMSTDefaultHostId];
     }
   }
@@ -343,6 +360,7 @@
   // Load output format from iCloud
   NSNumber *cloudOutputFormat = [self.iCloudSyncManager getOutputFormat];
   if (cloudOutputFormat) {
+    hasCloudData = YES;
     self.outputFormat = [cloudOutputFormat integerValue];
     [self.userDefaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
   }
@@ -350,6 +368,7 @@
   // Load compress factor from iCloud
   NSNumber *cloudCompressFactor = [self.iCloudSyncManager getCompressFactor];
   if (cloudCompressFactor) {
+    hasCloudData = YES;
     self.compressFactor = [cloudCompressFactor integerValue];
     [self.userDefaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
   }
@@ -357,11 +376,18 @@
   // Load remove EXIF from iCloud
   NSNumber *cloudRemoveEXIF = [self.iCloudSyncManager getRemoveEXIF];
   if (cloudRemoveEXIF) {
+    hasCloudData = YES;
     self.removeEXIF = [cloudRemoveEXIF boolValue];
     [self.userDefaults setBool:self.removeEXIF forKey:kMSTRemoveEXIF];
   }
   
   [self.userDefaults synchronize];
+  
+  if (hasCloudData) {
+    NSLog(@"[Config] Successfully loaded data from iCloud");
+  } else {
+    NSLog(@"[Config] No data found in iCloud yet - waiting for initial sync");
+  }
 }
 
 - (void)handleiCloudDataChange:(NSNotification *)notification {
@@ -369,8 +395,52 @@
     return;
   }
   
-  // Reload configs from iCloud
-  [self loadFromiCloudIfAvailable];
+  NSLog(@"[Config] Handling iCloud data change notification");
+  
+  NSDictionary *userInfo = notification.userInfo;
+  NSNumber *changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey];
+  
+  if (changeReason) {
+    NSInteger reason = [changeReason integerValue];
+    
+    // Handle initial sync - always reload data
+    if (reason == NSUbiquitousKeyValueStoreInitialSyncChange) {
+      NSLog(@"[Config] Initial sync detected - reloading from iCloud");
+      
+      // Force reload from iCloud regardless of local data
+      NSArray *cloudConfigDicts = [self.iCloudSyncManager getHostConfigs];
+      if (cloudConfigDicts && cloudConfigDicts.count > 0) {
+        [self.mutableHostConfigs removeAllObjects];
+        for (NSDictionary *dict in cloudConfigDicts) {
+          MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
+          if (config) {
+            [self.mutableHostConfigs addObject:config];
+          }
+        }
+        [self.userDefaults setObject:cloudConfigDicts forKey:kMSTHostConfigs];
+        
+        // Load default host
+        NSString *cloudDefaultHostId = [self.iCloudSyncManager getDefaultHostId];
+        if (cloudDefaultHostId) {
+          self.defaultHost = [self hostConfigWithIdentifier:cloudDefaultHostId];
+          if (self.defaultHost) {
+            self.defaultHost.isDefault = YES;
+            [self.userDefaults setObject:cloudDefaultHostId forKey:kMSTDefaultHostId];
+          }
+        }
+        
+        [self.userDefaults synchronize];
+        NSLog(@"[Config] Successfully loaded %lu configs from initial sync", 
+              (unsigned long)self.mutableHostConfigs.count);
+      }
+    } else {
+      // For other changes, use normal load behavior
+      [self loadFromiCloudIfAvailable];
+    }
+  } else {
+    // No change reason, do normal reload
+    [self loadFromiCloudIfAvailable];
+  }
   
   // Post notification that config changed
   [[NSNotificationCenter defaultCenter]

@@ -134,8 +134,12 @@ static NSString * const kMSTiCloudRemoveEXIF = @"iCloudRemoveEXIF";
     
     if (reason == NSUbiquitousKeyValueStoreServerChange) {
       NSLog(@"[iCloud Sync] Change reason: Server change");
+      // Update last sync date when receiving data from server
+      [self updateLastSyncDate];
     } else if (reason == NSUbiquitousKeyValueStoreInitialSyncChange) {
       NSLog(@"[iCloud Sync] Change reason: Initial sync");
+      // Update last sync date on initial sync
+      [self updateLastSyncDate];
     } else if (reason == NSUbiquitousKeyValueStoreQuotaViolationChange) {
       NSLog(@"[iCloud Sync] ERROR: iCloud quota exceeded");
       return;
