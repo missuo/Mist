@@ -78,18 +78,27 @@
     // First time enabling iCloud sync
     NSLog(@"[Config] Enabling iCloud sync for the first time");
     
-    // First, upload local data to iCloud (if we have any)
-    if (self.mutableHostConfigs.count > 0) {
-      [self syncToiCloud];
-      NSLog(@"[Config] Uploaded %lu local configs to iCloud", 
-            (unsigned long)self.mutableHostConfigs.count);
-    } else {
-      NSLog(@"[Config] No local configs to upload");
-    }
+    // Strategy: Check iCloud first, only upload local data if iCloud is empty
+    // This prevents new devices from overwriting existing iCloud data with defaults
     
     // Immediately check if iCloud already has data
-    // This handles the case where iCloud already has data from another device
-    [self loadFromiCloudIfAvailable];
+    NSArray *cloudConfigs = [self.iCloudSyncManager getHostConfigs];
+    BOOL iCloudHasData = (cloudConfigs != nil && cloudConfigs.count > 0);
+    
+    if (iCloudHasData) {
+      // iCloud already has data (from another device)
+      NSLog(@"[Config] Found %lu existing configs in iCloud, loading them...", 
+            (unsigned long)cloudConfigs.count);
+      [self loadFromiCloudIfAvailable];
+    } else if (self.mutableHostConfigs.count > 0) {
+      // iCloud is empty, but we have local configs - upload them
+      NSLog(@"[Config] iCloud is empty, uploading %lu local configs...", 
+            (unsigned long)self.mutableHostConfigs.count);
+      [self syncToiCloud];
+    } else {
+      // Both iCloud and local are empty
+      NSLog(@"[Config] No configs in iCloud or locally");
+    }
     
     // Also schedule a delayed check in case iCloud sync is still in progress
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), 
