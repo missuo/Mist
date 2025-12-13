@@ -180,7 +180,7 @@
   case MSTS3ProviderTypeMinIO:
     return @"MinIO";
   case MSTS3ProviderTypeCustom:
-    return @"Custom S3";
+    return @"通用S3";
   }
   return @"Unknown";
 }
