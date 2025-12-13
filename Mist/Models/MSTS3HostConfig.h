@@ -36,6 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)baseURL;
 - (NSString *)computedEndpoint;
 
+- (instancetype)copyWithNewIdentifier;
+
 + (nullable MSTS3HostConfig *)configFromDictionary:(NSDictionary *)dict;
 
 @end

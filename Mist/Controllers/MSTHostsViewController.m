@@ -22,6 +22,7 @@
 @property(nonatomic, strong) MSTS3ConfigViewController *configVC;
 @property(nonatomic, strong) NSButton *addButton;
 @property(nonatomic, strong) NSButton *removeButton;
+@property(nonatomic, strong) NSButton *duplicateButton;
 @property(nonatomic, strong) NSButton *defaultButton;
 
 @end
@@ -107,10 +108,17 @@
   self.removeButton.action = @selector(removeHost:);
   [toolbar addSubview:self.removeButton];
 
+  self.duplicateButton =
+      [self createToolbarButtonWithSymbol:@"doc.on.doc"
+                                  tooltip:@"Duplicate Host"
+                                    frame:NSMakeRect(60, 2, 28, 28)];
+  self.duplicateButton.action = @selector(copyHost:);
+  [toolbar addSubview:self.duplicateButton];
+
   self.defaultButton =
       [self createToolbarButtonWithSymbol:@"star"
                                   tooltip:@"Set as Default"
-                                    frame:NSMakeRect(60, 2, 28, 28)];
+                                    frame:NSMakeRect(88, 2, 28, 28)];
   self.defaultButton.action = @selector(setDefaultHost:);
   [toolbar addSubview:self.defaultButton];
 
@@ -213,6 +221,30 @@
   [self updateButtonStates];
 }
 
+- (void)copyHost:(id)sender {
+  NSInteger row = self.tableView.selectedRow;
+  if (row < 0)
+    return;
+
+  NSArray *configs = [MSTConfigManager sharedManager].hostConfigs;
+  if (row >= configs.count)
+    return;
+
+  MSTS3HostConfig *config = configs[row];
+  MSTS3HostConfig *copiedConfig = [config copyWithNewIdentifier];
+  [[MSTConfigManager sharedManager] addHostConfig:copiedConfig];
+  [self.tableView reloadData];
+
+  // Select the new copied host
+  NSInteger newRow = [MSTConfigManager sharedManager].hostConfigs.count - 1;
+  [self.tableView selectRowIndexes:[NSIndexSet indexSetWithIndex:newRow]
+              byExtendingSelection:NO];
+  [self tableViewSelectionDidChange:
+            [NSNotification
+                notificationWithName:NSTableViewSelectionDidChangeNotification
+                              object:self.tableView]];
+}
+
 - (void)setDefaultHost:(id)sender {
   NSInteger row = self.tableView.selectedRow;
   if (row < 0)
@@ -242,6 +274,7 @@
   }
 
   self.removeButton.enabled = hasSelection;
+  self.duplicateButton.enabled = hasSelection;
   self.defaultButton.enabled = hasSelection && !isDefault;
 }
 

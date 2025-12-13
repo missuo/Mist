@@ -149,6 +149,22 @@
   return self.providerType != MSTS3ProviderTypeAmazonS3;
 }
 
+- (instancetype)copyWithNewIdentifier {
+  MSTS3HostConfig *copy = [[MSTS3HostConfig alloc] init];
+  copy.name = [NSString stringWithFormat:@"%@ Copy", self.name];
+  copy.providerType = self.providerType;
+  copy.region = [self.region copy];
+  copy.endpoint = [self.endpoint copy];
+  copy.bucket = [self.bucket copy];
+  copy.accessKey = [self.accessKey copy];
+  copy.secretKey = [self.secretKey copy];
+  copy.domain = [self.domain copy];
+  copy.saveKeyPath = [self.saveKeyPath copy];
+  copy.acl = [self.acl copy];
+  copy.isDefault = NO;
+  return copy;
+}
+
 #pragma mark - URL Computation
 
 - (NSString *)baseURL {
