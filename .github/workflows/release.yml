@@ -1,0 +1,142 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install certificate
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import certificate
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo -n "$CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
+
+          security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Build app
+        run: |
+          xcodebuild clean build \
+            -project Mist.xcodeproj \
+            -scheme Mist \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)" \
+            DEVELOPMENT_TEAM="ZDY6H3JN3N" \
+            OTHER_CODE_SIGN_FLAGS="--options=runtime"
+
+      - name: Sign app
+        run: |
+          APP_PATH="build/Build/Products/Release/Mist.app"
+          IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
+
+          # Sign the extension first
+          codesign --force --options runtime \
+            --sign "$IDENTITY" \
+            --timestamp \
+            "$APP_PATH/Contents/PlugIns/MistShareExtension.appex"
+
+          # Sign the main app
+          codesign --force --options runtime \
+            --sign "$IDENTITY" \
+            --timestamp \
+            "$APP_PATH"
+
+          # Verify
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
+      - name: Create ZIP for notarization
+        run: |
+          cd build/Build/Products/Release
+          ditto -c -k --keepParent Mist.app Mist.zip
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ZDY6H3JN3N
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+        run: |
+          xcrun notarytool submit build/Build/Products/Release/Mist.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APP_PASSWORD" \
+            --wait
+
+      - name: Staple app
+        run: |
+          xcrun stapler staple build/Build/Products/Release/Mist.app
+
+      - name: Create DMG
+        run: |
+          APP_PATH="build/Build/Products/Release/Mist.app"
+          DMG_PATH="build/Build/Products/Release/Mist.dmg"
+          IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
+
+          # Create DMG
+          hdiutil create -volname "Mist" \
+            -srcfolder "$APP_PATH" \
+            -ov -format UDZO \
+            "$DMG_PATH"
+
+          # Sign DMG
+          codesign --sign "$IDENTITY" --timestamp "$DMG_PATH"
+
+      - name: Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ZDY6H3JN3N
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+        run: |
+          xcrun notarytool submit build/Build/Products/Release/Mist.dmg \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APP_PASSWORD" \
+            --wait
+
+          xcrun stapler staple build/Build/Products/Release/Mist.dmg
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Mist ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            build/Build/Products/Release/Mist.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true

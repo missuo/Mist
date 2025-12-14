@@ -15,26 +15,28 @@ echo -e "${GREEN}=== Mist App Signing and Notarization ===${NC}\n"
 
 # Configuration
 APP_NAME="Mist"
-BUILD_DIR="build/Release"
+BUILD_DIR="build/Build/Products/Release"
 APP_PATH="${BUILD_DIR}/${APP_NAME}.app"
 DMG_NAME="${APP_NAME}.dmg"
 DMG_PATH="${BUILD_DIR}/${DMG_NAME}"
 ZIP_NAME="${APP_NAME}.zip"
 ZIP_PATH="${BUILD_DIR}/${ZIP_NAME}"
 
-# You need to set these
-DEVELOPER_ID_APPLICATION="Developer ID Application: YOUR_NAME (YOUR_TEAM_ID)"
-APPLE_ID="your-apple-id@example.com"
-TEAM_ID="ZDY6H3JN3N"  # Your team ID from project
-APP_PASSWORD=""  # App-specific password from appleid.apple.com
+# Configuration
+DEVELOPER_ID_APPLICATION="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
+TEAM_ID="ZDY6H3JN3N"
 
-# Check if configuration is set
-if [[ "$DEVELOPER_ID_APPLICATION" == *"YOUR_NAME"* ]] || [[ "$APPLE_ID" == *"example.com"* ]]; then
-    echo -e "${RED}Error: Please configure the script with your signing details${NC}"
-    echo "Edit this script and set:"
-    echo "  - DEVELOPER_ID_APPLICATION (run: security find-identity -v -p codesigning)"
-    echo "  - APPLE_ID (your Apple Developer account email)"
-    echo "  - APP_PASSWORD (app-specific password from appleid.apple.com)"
+# These should be set as environment variables
+# export APPLE_ID="your-apple-id@example.com"
+# export APP_PASSWORD="your-app-specific-password"
+
+if [[ -z "$APPLE_ID" ]] || [[ -z "$APP_PASSWORD" ]]; then
+    echo -e "${RED}Error: Missing required environment variables${NC}"
+    echo "Please set the following environment variables:"
+    echo "  export APPLE_ID=\"your-apple-id@example.com\""
+    echo "  export APP_PASSWORD=\"your-app-specific-password\""
+    echo ""
+    echo "You can get an app-specific password from https://appleid.apple.com"
     exit 1
 fi
 
@@ -45,9 +47,9 @@ xcodebuild clean build \
     -scheme Mist \
     -configuration Release \
     -derivedDataPath build \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
-    CODE_SIGN_STYLE=Manual \
-    DEVELOPMENT_TEAM="$TEAM_ID"
+    CODE_SIGN_STYLE=Automatic \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
+    -allowProvisioningUpdates
 
 if [ ! -d "$APP_PATH" ]; then
     echo -e "${RED}Error: App not found at $APP_PATH${NC}"
