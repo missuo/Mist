@@ -42,23 +42,37 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
 
-      - name: Build app
+      - name: Build and Archive
         run: |
-          xcodebuild clean build \
+          # Build archive without signing
+          xcodebuild archive \
             -project Mist.xcodeproj \
             -scheme Mist \
             -configuration Release \
-            -derivedDataPath build \
+            -archivePath build/Mist.xcarchive \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+          # Export the app from archive
+          mkdir -p build/Release
+          cp -R "build/Mist.xcarchive/Products/Applications/Mist.app" "build/Release/"
+
       - name: Sign app
         run: |
-          APP_PATH="build/Build/Products/Release/Mist.app"
+          APP_PATH="build/Release/Mist.app"
           IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
 
-          # Sign the extension first with its entitlements
+          # Sign all frameworks and libraries first
+          find "$APP_PATH/Contents/Frameworks" -type f -name "*.dylib" 2>/dev/null | while read lib; do
+            codesign --force --options runtime --sign "$IDENTITY" --timestamp "$lib"
+          done
+
+          find "$APP_PATH/Contents/Frameworks" -type d -name "*.framework" 2>/dev/null | while read fw; do
+            codesign --force --options runtime --sign "$IDENTITY" --timestamp "$fw"
+          done
+
+          # Sign the extension with its entitlements
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \
@@ -77,7 +91,7 @@ jobs:
 
       - name: Create ZIP for notarization
         run: |
-          cd build/Build/Products/Release
+          cd build/Release
           ditto -c -k --keepParent Mist.app Mist.zip
 
       - name: Notarize app
@@ -86,7 +100,7 @@ jobs:
           TEAM_ID: ZDY6H3JN3N
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
         run: |
-          xcrun notarytool submit build/Build/Products/Release/Mist.zip \
+          xcrun notarytool submit build/Release/Mist.zip \
             --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
             --password "$APP_PASSWORD" \
@@ -94,12 +108,12 @@ jobs:
 
       - name: Staple app
         run: |
-          xcrun stapler staple build/Build/Products/Release/Mist.app
+          xcrun stapler staple build/Release/Mist.app
 
       - name: Create DMG
         run: |
-          APP_PATH="build/Build/Products/Release/Mist.app"
-          DMG_PATH="build/Build/Products/Release/Mist.dmg"
+          APP_PATH="build/Release/Mist.app"
+          DMG_PATH="build/Release/Mist.dmg"
           IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
 
           # Create DMG
@@ -117,13 +131,13 @@ jobs:
           TEAM_ID: ZDY6H3JN3N
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
         run: |
-          xcrun notarytool submit build/Build/Products/Release/Mist.dmg \
+          xcrun notarytool submit build/Release/Mist.dmg \
             --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
             --password "$APP_PASSWORD" \
             --wait
 
-          xcrun stapler staple build/Build/Products/Release/Mist.dmg
+          xcrun stapler staple build/Release/Mist.dmg
 
       - name: Get version from tag
         id: version
@@ -132,11 +146,11 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Mist ${{ steps.version.outputs.VERSION }}
+          name: ${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
           files: |
-            build/Build/Products/Release/Mist.dmg
+            build/Release/Mist.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
