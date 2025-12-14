@@ -57,14 +57,7 @@ jobs:
           APP_PATH="build/Build/Products/Release/Mist.app"
           IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
 
-          # Sign the app extension first
-          codesign --force --options runtime \
-            --sign "$IDENTITY" \
-            --timestamp \
-            --deep \
-            "$APP_PATH/Contents/PlugIns/MistShareExtension.appex"
-
-          # Then sign the main app
+          # Sign the main app
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \

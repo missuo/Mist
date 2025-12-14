@@ -109,6 +109,22 @@ Download the latest version from the [Releases](https://github.com/missuo/Mist/r
 2. Select **Share** → **Mist**
 3. File uploads and URL is copied automatically
 
+### Upload via Services (Right-Click Menu)
+Install the Mist Upload Service for direct Finder integration:
+
+```bash
+./scripts/install-service.sh
+```
+
+After installation and enabling in System Settings:
+1. Right-click on one or more files in Finder
+2. Select **Services** → **Upload to Mist**
+3. Files upload automatically and URLs are copied to clipboard
+
+See [SERVICES.md](SERVICES.md) for detailed setup instructions.
+
+**Troubleshooting**: If you see "There was a problem with the input to the Service", see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for solutions.
+
 ### Upload via URL Scheme
 Automate uploads using the `mist://` URL scheme:
 
@@ -119,6 +135,8 @@ open "mist://files?/path/to/image.png"
 # Upload multiple files
 open "mist://files?/path/to/file1.jpg,/path/to/file2.png"
 ```
+
+**Note**: The Share Extension uses a different internal mechanism (`mist://share-session?<sessionID>`) that passes security-scoped bookmarks through the App Group container for proper sandboxed file access.
 
 ### Quick Actions
 - Click **Open Last Upload** to open the most recently uploaded file

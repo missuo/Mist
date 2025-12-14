@@ -61,14 +61,7 @@ echo -e "${GREEN}✓ Build complete${NC}\n"
 # Step 2: Sign the app with Developer ID
 echo -e "${YELLOW}Step 2: Signing app with Developer ID...${NC}"
 
-# Sign the app extension first
-codesign --force --options runtime \
-    --sign "$DEVELOPER_ID_APPLICATION" \
-    --timestamp \
-    --deep \
-    "${APP_PATH}/Contents/PlugIns/MistShareExtension.appex"
-
-# Then sign the main app
+# Sign the main app
 codesign --force --options runtime \
     --sign "$DEVELOPER_ID_APPLICATION" \
     --timestamp \
