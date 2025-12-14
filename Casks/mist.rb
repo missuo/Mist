@@ -1,8 +1,8 @@
 cask "mist" do
-  version "1.0.7"
-  sha256 "560c6680f4e3cb2d0200c8b513b70eb7dae36d0917b5345437dc570c296a9d3c"
+  version "1.0.9"
+  sha256 "bcf4c8e1f15da01e29cee2c7932fd2308a7706acaaf914cd9bfb1ea0cd88b61a"
 
-  url "https://cdn.uid.si/Mist.dmg", verified: "uid.si/"
+  url "https://cdn.uid.si/Mist-#{version}.dmg", verified: "uid.si/"
   name "Mist"
   desc "Lightweight S3 image uploader for macOS"
   homepage "https://github.com/missuo/Mist"
@@ -20,11 +20,17 @@ cask "mist" do
     FileUtils.rm_rf(workflow_path) if File.directory?(workflow_path)
     FileUtils.mkdir_p(contents_dir)
 
-    File.write(File.join(contents_dir, "Info.plist"), <<~PLIST)
+    File.write(File.join(contents_dir, "Info.plist"), <<~'PLIST')
       <?xml version="1.0" encoding="UTF-8"?>
       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
       <plist version="1.0">
       <dict>
+          <key>CFBundleIdentifier</key>
+          <string>com.apple.Automator.UploadToMist</string>
+          <key>CFBundleName</key>
+          <string>Upload to Mist</string>
+          <key>CFBundleVersion</key>
+          <string>1.2</string>
           <key>NSServices</key>
           <array>
               <dict>
@@ -37,27 +43,15 @@ cask "mist" do
                   <string>runWorkflowAsService</string>
                   <key>NSSendFileTypes</key>
                   <array>
-                      <string>public.data</string>
-                      <string>public.content</string>
                       <string>public.item</string>
                   </array>
-                  <key>NSReturnTypes</key>
-                  <array/>
               </dict>
           </array>
-          <key>CFBundleIdentifier</key>
-          <string>com.apple.Automator.UploadToMist</string>
-          <key>CFBundleName</key>
-          <string>Upload to Mist</string>
-          <key>CFBundleVersion</key>
-          <string>1.1</string>
-          <key>CFBundlePackageType</key>
-          <string>BNDL</string>
       </dict>
       </plist>
     PLIST
 
-    File.write(File.join(contents_dir, "document.wflow"), <<~WFLOW)
+    File.write(File.join(contents_dir, "document.wflow"), <<~'WFLOW')
       <?xml version="1.0" encoding="UTF-8"?>
       <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
       <plist version="1.0">
@@ -90,11 +84,6 @@ cask "mist" do
                       <array>
                           <string>Automator</string>
                       </array>
-                      <key>AMParameterProperties</key>
-                      <dict>
-                          <key>source</key>
-                          <dict/>
-                      </dict>
                       <key>AMProvides</key>
                       <dict>
                           <key>Container</key>
@@ -111,48 +100,43 @@ cask "mist" do
                       <key>ActionParameters</key>
                       <dict>
                           <key>COMMAND_STRING</key>
-                          <string>#!/bin/bash
+                          <string>LOG="/tmp/mist-service.log"
+{
+echo "=== Debug Info ==="
+echo "Date: $(date)"
+echo "PWD: $PWD"
+echo "USER: $USER"
+echo "Arg count: $#"
+echo "Args: $@"
+echo "Arg1: $1"
+echo "Arg2: $2"
+echo "All args:"
+for arg in "$@"; do
+  echo "  - $arg"
+done
+echo ""
 
-# Log file for debugging
-LOG="/tmp/mist-service.log"
-echo "=== Mist Service Started at $(date) ===" >> "$LOG"
-
-# Receive file paths as arguments: $1, $2, $3, etc.
-# Build comma-separated list of URL-encoded paths
+if [ $# -eq 0 ]; then
+  echo "ERROR: No arguments received!"
+  echo "This means Automator is not passing file paths."
+  exit 1
+fi
 
 paths=""
-
-for file in "$@"; do
-    echo "Processing file: $file" >> "$LOG"
-    
-    # URL encode the path using Python
-    encoded=$(/usr/bin/python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))" "$file" 2>> "$LOG")
-    
-    if [ -z "$paths" ]; then
-        paths="$encoded"
-    else
-        paths="$paths,$encoded"
-    fi
+for f in "$@"; do
+  echo "Processing: $f"
+  encoded=$(/usr/bin/python3 -c "import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))" "$f")
+  [ -z "$paths" ] &amp;&amp; paths="$encoded" || paths="$paths,$encoded"
 done
 
-# Open mist:// URL scheme with all file paths
 if [ -n "$paths" ]; then
-    url="mist://files?$paths"
-    echo "Opening URL: $url" >> "$LOG"
-    
-    # Try multiple methods to open the URL
-    /usr/bin/open "$url" >> "$LOG" 2>&1
-    
-    # Also try launching Mist directly if open fails
-    if [ $? -ne 0 ]; then
-        echo "open command failed, trying to launch Mist directly" >> "$LOG"
-        /usr/bin/open -a Mist "$url" >> "$LOG" 2>&1
-    fi
-    
-    echo "Service completed" >> "$LOG"
-else
-    echo "No paths to upload" >> "$LOG"
+  url="mist://files?$paths"
+  echo "Opening URL: $url"
+  /usr/bin/open "$url" &amp;
+  echo "Command sent"
 fi
+} >> "$LOG" 2&gt;&amp;1
+exit 0
 </string>
                           <key>CheckedForUserDefaultShell</key>
                           <true/>
@@ -160,114 +144,10 @@ fi
                           <integer>1</integer>
                           <key>shell</key>
                           <string>/bin/bash</string>
-                          <key>source</key>
-                          <string></string>
                       </dict>
                       <key>BundleIdentifier</key>
                       <string>com.apple.RunShellScript</string>
-                      <key>CFBundleVersion</key>
-                      <string>1.1.2</string>
-                      <key>CanShowSelectedItemsWhenRun</key>
-                      <false/>
-                      <key>CanShowWhenRun</key>
-                      <true/>
-                      <key>Category</key>
-                      <array>
-                          <string>AMCategoryUtilities</string>
-                      </array>
-                      <key>Class Name</key>
-                      <string>RunShellScriptAction</string>
-                      <key>InputUUID</key>
-                      <string>A1B2C3D4-E5F6-7890-1234-567890ABCDEF</string>
-                      <key>Keywords</key>
-                      <array>
-                          <string>Shell</string>
-                          <string>Script</string>
-                          <string>Command</string>
-                          <string>Run</string>
-                          <string>Unix</string>
-                      </array>
-                      <key>OutputUUID</key>
-                      <string>F1E2D3C4-B5A6-9876-5432-10FEDCBA9876</string>
-                      <key>UUID</key>
-                      <string>12345678-ABCD-EF01-2345-6789ABCDEF01</string>
-                      <key>UnlocalizedApplications</key>
-                      <array>
-                          <string>Automator</string>
-                      </array>
-                      <key>arguments</key>
-                      <dict>
-                          <key>0</key>
-                          <dict>
-                              <key>default value</key>
-                              <integer>0</integer>
-                              <key>name</key>
-                              <string>inputMethod</string>
-                              <key>required</key>
-                              <string>0</string>
-                              <key>type</key>
-                              <string>0</string>
-                              <key>uuid</key>
-                              <string>0</string>
-                          </dict>
-                          <key>1</key>
-                          <dict>
-                              <key>default value</key>
-                              <false/>
-                              <key>name</key>
-                              <string>CheckedForUserDefaultShell</string>
-                              <key>required</key>
-                              <string>0</string>
-                              <key>type</key>
-                              <string>0</string>
-                              <key>uuid</key>
-                              <string>1</string>
-                          </dict>
-                          <key>2</key>
-                          <dict>
-                              <key>default value</key>
-                              <string></string>
-                              <key>name</key>
-                              <string>source</string>
-                              <key>required</key>
-                              <string>0</string>
-                              <key>type</key>
-                              <string>0</string>
-                              <key>uuid</key>
-                              <string>2</string>
-                          </dict>
-                          <key>3</key>
-                          <dict>
-                              <key>default value</key>
-                              <string></string>
-                              <key>name</key>
-                              <string>COMMAND_STRING</string>
-                              <key>required</key>
-                              <string>0</string>
-                              <key>type</key>
-                              <string>0</string>
-                              <key>uuid</key>
-                              <string>3</string>
-                          </dict>
-                          <key>4</key>
-                          <dict>
-                              <key>default value</key>
-                              <string>/bin/sh</string>
-                              <key>name</key>
-                              <string>shell</string>
-                              <key>required</key>
-                              <string>0</string>
-                              <key>type</key>
-                              <string>0</string>
-                              <key>uuid</key>
-                              <string>4</string>
-                          </dict>
-                      </dict>
-                      <key>isViewVisible</key>
-                      <integer>1</integer>
                   </dict>
-                  <key>isViewVisible</key>
-                  <integer>1</integer>
               </dict>
           </array>
           <key>connectors</key>
@@ -278,8 +158,6 @@ fi
               <string>com.apple.Automator.fileSystemObject</string>
               <key>serviceOutputTypeIdentifier</key>
               <string>com.apple.Automator.nothing</string>
-              <key>serviceApplicationBundleID</key>
-              <string>com.apple.finder</string>
               <key>workflowTypeIdentifier</key>
               <string>com.apple.Automator.servicesMenu</string>
           </dict>
@@ -290,6 +168,8 @@ fi
     FileUtils.chmod(0o755, workflow_path)
     FileUtils.chmod(0o644, File.join(contents_dir, "Info.plist"))
     FileUtils.chmod(0o644, File.join(contents_dir, "document.wflow"))
+
+    system "/System/Library/CoreServices/pbs", "-flush"
   end
 
   uninstall_postflight do

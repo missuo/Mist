@@ -20,6 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy) NSString *bucket;
 @property(nonatomic, copy) NSString *accessKey;
 @property(nonatomic, copy) NSString *secretKey;
+@property(nonatomic, copy) NSString *smmsToken;
 @property(nonatomic, copy) NSString *domain;
 @property(nonatomic, copy) NSString *saveKeyPath;
 @property(nonatomic, copy) NSString *acl;

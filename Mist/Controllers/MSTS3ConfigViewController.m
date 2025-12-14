@@ -23,6 +23,15 @@
 @property(nonatomic, strong) NSTextField *bucketField;
 @property(nonatomic, strong) NSSecureTextField *accessKeyField;
 @property(nonatomic, strong) NSSecureTextField *secretKeyField;
+@property(nonatomic, strong) NSTextField *tokenLabel;
+@property(nonatomic, strong) NSSecureTextField *tokenField;
+@property(nonatomic, strong) NSTextField *bucketLabel;
+@property(nonatomic, strong) NSTextField *accessKeyLabel;
+@property(nonatomic, strong) NSTextField *secretKeyLabel;
+@property(nonatomic, strong) NSTextField *aclLabel;
+@property(nonatomic, strong) NSTextField *domainLabel;
+@property(nonatomic, strong) NSTextField *savePathLabel;
+@property(nonatomic, strong) NSTextField *pathHintLabel;
 @property(nonatomic, strong) NSButton *showAccessKeyButton;
 @property(nonatomic, strong) NSButton *showSecretKeyButton;
 @property(nonatomic, strong) NSPopUpButton *aclPopup;
@@ -47,6 +56,18 @@
 
 @property(nonatomic, assign) BOOL showingAccessKey;
 @property(nonatomic, assign) BOOL showingSecretKey;
+
+// Layout baselines
+@property(nonatomic, assign) NSRect baseTokenLabelFrame;
+@property(nonatomic, assign) NSRect baseTokenFieldFrame;
+@property(nonatomic, assign) NSRect baseShortLinkCheckboxFrame;
+@property(nonatomic, assign) NSRect baseShortLinkNoteFrame;
+@property(nonatomic, assign) NSRect baseSavePathLabelFrame;
+@property(nonatomic, assign) NSRect baseSaveKeyPathFieldFrame;
+@property(nonatomic, assign) NSRect basePathHintFrame;
+@property(nonatomic, assign) NSRect baseStatusLabelFrame;
+@property(nonatomic, assign) NSRect baseSaveButtonFrame;
+@property(nonatomic, assign) NSRect baseValidateButtonFrame;
 
 @end
 
@@ -127,7 +148,7 @@
   self.providerPopup = [[NSPopUpButton alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
   for (MSTS3ProviderType type = MSTS3ProviderTypeAmazonS3;
-       type <= MSTS3ProviderTypeMinIO; type++) {
+       type <= MSTS3ProviderTypeSMMS; type++) {
     [self.providerPopup
         addItemWithTitle:[MSTS3Region displayNameForProvider:type]];
     self.providerPopup.lastItem.tag = type;
@@ -156,7 +177,7 @@
   y -= row;
 
   // Bucket
-  [self addLabel:@"Bucket:" atY:y];
+  self.bucketLabel = [self addLabel:@"Bucket:" atY:y];
   self.bucketField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
   self.bucketField.placeholderString = @"my-bucket";
   self.bucketField.delegate = self;
@@ -164,7 +185,7 @@
   y -= row;
 
   // Access Key
-  [self addLabel:@"Access Key:" atY:y];
+  self.accessKeyLabel = [self addLabel:@"Access Key:" atY:y];
   self.accessKeyField = [[NSSecureTextField alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth - 28, 22)];
   self.accessKeyField.placeholderString = @"AKIAIOSFODNN7EXAMPLE";
@@ -184,7 +205,7 @@
   y -= row;
 
   // Secret Key
-  [self addLabel:@"Secret Key:" atY:y];
+  self.secretKeyLabel = [self addLabel:@"Secret Key:" atY:y];
   self.secretKeyField = [[NSSecureTextField alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth - 28, 22)];
   self.secretKeyField.placeholderString = @"wJalrXUtnFEMI/K7MDENG/bPxRfi...";
@@ -203,8 +224,21 @@
   [self.contentView addSubview:self.showSecretKeyButton];
   y -= row;
 
+  // SM.MS Token
+  self.tokenLabel = [self addLabel:@"Token:" atY:y];
+  self.tokenField = [[NSSecureTextField alloc]
+      initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
+  self.tokenField.placeholderString = @"SM.MS API token";
+  self.tokenField.font =
+      [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+  self.tokenField.delegate = self;
+  self.tokenLabel.hidden = YES;
+  self.tokenField.hidden = YES;
+  [self.contentView addSubview:self.tokenField];
+  y -= row;
+
   // ACL
-  [self addLabel:@"ACL:" atY:y];
+  self.aclLabel = [self addLabel:@"ACL:" atY:y];
   self.aclPopup = [[NSPopUpButton alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
   [self.aclPopup addItemWithTitle:@"Private"];
@@ -219,7 +253,7 @@
   y -= row;
 
   // Custom Domain
-  [self addLabel:@"Domain:" atY:y];
+  self.domainLabel = [self addLabel:@"Domain:" atY:y];
   self.domainField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
   self.domainField.placeholderString = @"cdn.example.com (optional)";
   self.domainField.delegate = self;
@@ -248,22 +282,22 @@
   y = noteY - row;
 
   // Save Path
-  [self addLabel:@"Save Path:" atY:y];
+  self.savePathLabel = [self addLabel:@"Save Path:" atY:y];
   self.saveKeyPathField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
   self.saveKeyPathField.placeholderString = @"{filename}.{ext}";
   self.saveKeyPathField.delegate = self;
   [self.contentView addSubview:self.saveKeyPathField];
   y -= 18;
 
-  NSTextField *pathHint =
+  self.pathHintLabel =
       [[NSTextField alloc] initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 12)];
-  pathHint.stringValue = @"{year} {month} {day} {filename} {ext} {random} {uuid}";
-  pathHint.font = [NSFont systemFontOfSize:9];
-  pathHint.textColor = [NSColor tertiaryLabelColor];
-  pathHint.bezeled = NO;
-  pathHint.drawsBackground = NO;
-  pathHint.editable = NO;
-  [self.contentView addSubview:pathHint];
+  self.pathHintLabel.stringValue = @"{year} {month} {day} {filename} {ext} {random} {uuid}";
+  self.pathHintLabel.font = [NSFont systemFontOfSize:9];
+  self.pathHintLabel.textColor = [NSColor tertiaryLabelColor];
+  self.pathHintLabel.bezeled = NO;
+  self.pathHintLabel.drawsBackground = NO;
+  self.pathHintLabel.editable = NO;
+  [self.contentView addSubview:self.pathHintLabel];
   y -= row;
 
   // Buttons
@@ -295,6 +329,18 @@
 
   self.scrollView.documentView = self.contentView;
   [self.view addSubview:self.scrollView];
+
+  // Capture baseline frames for dynamic layout adjustments
+  self.baseTokenLabelFrame = self.tokenLabel.frame;
+  self.baseTokenFieldFrame = self.tokenField.frame;
+  self.baseShortLinkCheckboxFrame = self.shortLinkCheckbox.frame;
+  self.baseShortLinkNoteFrame = self.shortLinkNoteLabel.frame;
+  self.baseSavePathLabelFrame = self.savePathLabel.frame;
+  self.baseSaveKeyPathFieldFrame = self.saveKeyPathField.frame;
+  self.basePathHintFrame = self.pathHintLabel.frame;
+  self.baseStatusLabelFrame = self.statusLabel.frame;
+  self.baseSaveButtonFrame = self.saveButton.frame;
+  self.baseValidateButtonFrame = self.validateButton.frame;
 }
 
 - (NSTextField *)addLabel:(NSString *)text atY:(CGFloat)y {
@@ -371,6 +417,7 @@
   self.bucketField.stringValue = self.config.bucket ?: @"";
   self.accessKeyField.stringValue = self.config.accessKey ?: @"";
   self.secretKeyField.stringValue = self.config.secretKey ?: @"";
+  self.tokenField.stringValue = self.config.smmsToken ?: @"";
   self.domainField.stringValue = self.config.domain ?: @"";
   self.saveKeyPathField.stringValue =
       self.config.saveKeyPath ?: @"{year}/{month}/{day}/{filename}.{ext}";
@@ -436,6 +483,9 @@
   case MSTS3ProviderTypeMinIO:
     iconName = @"minio";
     break;
+  case MSTS3ProviderTypeSMMS:
+    iconName = @"sm.ms";
+    break;
   case MSTS3ProviderTypeCustom:
   default:
     iconName = @"custom";
@@ -462,6 +512,9 @@
   case MSTS3ProviderTypeCustom:
     placeholder = @"s3.example.com";
     break;
+  case MSTS3ProviderTypeSMMS:
+    placeholder = @"";
+    break;
   default:
     placeholder = @"";
     break;
@@ -484,22 +537,89 @@
 
 - (void)updateRegionsForProvider:(MSTS3ProviderType)provider {
   [self.regionPopup removeAllItems];
-  for (MSTS3Region *region in [MSTS3Region regionsForProvider:provider]) {
+  NSArray *regions = [MSTS3Region regionsForProvider:provider];
+  for (MSTS3Region *region in regions) {
     [self.regionPopup addItemWithTitle:region.displayName];
     self.regionPopup.lastItem.representedObject = region.identifier;
+  }
+
+  if (regions.count == 0) {
+    [self.regionPopup addItemWithTitle:@"N/A"];
+    self.regionPopup.lastItem.representedObject = @"";
   }
 }
 
 - (void)updateFieldVisibility {
   MSTS3ProviderType provider =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  BOOL needsEndpoint = (provider != MSTS3ProviderTypeAmazonS3);
+  BOOL isSMMS = (provider == MSTS3ProviderTypeSMMS);
+  BOOL needsEndpoint =
+      (provider != MSTS3ProviderTypeAmazonS3 && provider != MSTS3ProviderTypeSMMS);
   BOOL needsRegion = (provider == MSTS3ProviderTypeAmazonS3);
 
   self.regionLabel.hidden = !needsRegion;
   self.regionPopup.hidden = !needsRegion;
   self.endpointLabel.hidden = !needsEndpoint;
   self.endpointField.hidden = !needsEndpoint;
+
+  self.tokenLabel.hidden = !isSMMS;
+  self.tokenField.hidden = !isSMMS;
+
+  NSArray<NSView *> *smmsHiddenViews = @[ self.bucketLabel ?: [[NSView alloc] init],
+                                          self.bucketField ?: [[NSView alloc] init],
+                                          self.accessKeyLabel ?: [[NSView alloc] init],
+                                          self.accessKeyField ?: [[NSView alloc] init],
+                                          self.secretKeyLabel ?: [[NSView alloc] init],
+                                          self.secretKeyField ?: [[NSView alloc] init],
+                                          self.showAccessKeyButton ?: [[NSView alloc] init],
+                                          self.showSecretKeyButton ?: [[NSView alloc] init],
+                                          self.aclLabel ?: [[NSView alloc] init],
+                                          self.aclPopup ?: [[NSView alloc] init],
+                                          self.domainLabel ?: [[NSView alloc] init],
+                                          self.domainField ?: [[NSView alloc] init],
+                                          self.savePathLabel ?: [[NSView alloc] init],
+                                          self.saveKeyPathField ?: [[NSView alloc] init],
+                                          self.pathHintLabel ?: [[NSView alloc] init] ];
+
+  for (NSView *view in smmsHiddenViews) {
+    view.hidden = isSMMS;
+    if ([view respondsToSelector:@selector(setEnabled:)]) {
+      [(id)view setEnabled:!isSMMS];
+    }
+  }
+
+  CGFloat rowHeight = 30.0;
+  CGFloat collapseOffset = rowHeight * 6; // endpoint, bucket, access, secret, ACL, domain
+
+  if (isSMMS) {
+    // Move token up to the Region row position
+    NSRect regionLabelFrame = self.regionLabel.frame;
+    NSRect regionFieldFrame = self.regionPopup.frame;
+    self.tokenLabel.frame = (NSRect){.origin = regionLabelFrame.origin, .size = self.tokenLabel.frame.size};
+    self.tokenField.frame = (NSRect){.origin = regionFieldFrame.origin, .size = self.tokenField.frame.size};
+
+    // Pull up lower sections to close gaps
+    self.shortLinkCheckbox.frame = NSOffsetRect(self.baseShortLinkCheckboxFrame, 0, collapseOffset);
+    self.shortLinkNoteLabel.frame = NSOffsetRect(self.baseShortLinkNoteFrame, 0, collapseOffset);
+    self.savePathLabel.frame = NSOffsetRect(self.baseSavePathLabelFrame, 0, collapseOffset);
+    self.saveKeyPathField.frame = NSOffsetRect(self.baseSaveKeyPathFieldFrame, 0, collapseOffset);
+    self.pathHintLabel.frame = NSOffsetRect(self.basePathHintFrame, 0, collapseOffset);
+    self.statusLabel.frame = NSOffsetRect(self.baseStatusLabelFrame, 0, collapseOffset);
+    self.saveButton.frame = NSOffsetRect(self.baseSaveButtonFrame, 0, collapseOffset);
+    self.validateButton.frame = NSOffsetRect(self.baseValidateButtonFrame, 0, collapseOffset);
+  } else {
+    // Restore original frames for non-SMMS providers
+    self.tokenLabel.frame = self.baseTokenLabelFrame;
+    self.tokenField.frame = self.baseTokenFieldFrame;
+    self.shortLinkCheckbox.frame = self.baseShortLinkCheckboxFrame;
+    self.shortLinkNoteLabel.frame = self.baseShortLinkNoteFrame;
+    self.savePathLabel.frame = self.baseSavePathLabelFrame;
+    self.saveKeyPathField.frame = self.baseSaveKeyPathFieldFrame;
+    self.pathHintLabel.frame = self.basePathHintFrame;
+    self.statusLabel.frame = self.baseStatusLabelFrame;
+    self.saveButton.frame = self.baseSaveButtonFrame;
+    self.validateButton.frame = self.baseValidateButtonFrame;
+  }
 
   // When Region is hidden, move Endpoint up to Region's position
   CGFloat regionY = self.regionPopup.frame.origin.y;
@@ -583,18 +703,26 @@
   self.config.name = self.nameField.stringValue;
   self.config.providerType =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  self.config.region = self.regionPopup.selectedItem.representedObject;
-  self.config.endpoint = self.endpointField.stringValue;
-  self.config.bucket = self.bucketField.stringValue;
-  self.config.accessKey = self.accessKeyField.stringValue;
-  self.config.secretKey = self.secretKeyField.stringValue;
-  self.config.acl = self.aclPopup.selectedItem.representedObject;
-  self.config.domain = self.domainField.stringValue;
   self.config.shortLinkEnabled = (self.shortLinkCheckbox.state == NSControlStateValueOn);
 
   NSString *savePath = self.saveKeyPathField.stringValue;
   self.config.saveKeyPath =
       savePath.length > 0 ? savePath : @"{filename}.{ext}";
+
+  if (self.config.providerType == MSTS3ProviderTypeSMMS) {
+    self.config.smmsToken = self.tokenField.stringValue;
+  } else {
+    NSMenuItem *regionItem = self.regionPopup.selectedItem;
+    NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
+    self.config.region = regionValue;
+    self.config.endpoint = self.endpointField.stringValue;
+    self.config.bucket = self.bucketField.stringValue;
+    self.config.accessKey = self.accessKeyField.stringValue;
+    self.config.secretKey = self.secretKeyField.stringValue;
+    self.config.acl = self.aclPopup.selectedItem.representedObject;
+    self.config.domain = self.domainField.stringValue;
+    self.config.smmsToken = @"";
+  }
 
   [[MSTConfigManager sharedManager] updateHostConfig:self.config];
 
@@ -618,13 +746,19 @@
   MSTS3HostConfig *testConfig = [[MSTS3HostConfig alloc] init];
   testConfig.providerType =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  testConfig.region = self.regionPopup.selectedItem.representedObject;
-  testConfig.endpoint = self.endpointField.stringValue;
-  testConfig.bucket = self.bucketField.stringValue;
-  testConfig.accessKey = self.accessKeyField.stringValue;
-  testConfig.secretKey = self.secretKeyField.stringValue;
-  testConfig.acl = self.aclPopup.selectedItem.representedObject;
-  testConfig.domain = self.domainField.stringValue;
+  if (testConfig.providerType == MSTS3ProviderTypeSMMS) {
+    testConfig.smmsToken = self.tokenField.stringValue;
+  } else {
+    NSMenuItem *regionItem = self.regionPopup.selectedItem;
+    NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
+    testConfig.region = regionValue;
+    testConfig.endpoint = self.endpointField.stringValue;
+    testConfig.bucket = self.bucketField.stringValue;
+    testConfig.accessKey = self.accessKeyField.stringValue;
+    testConfig.secretKey = self.secretKeyField.stringValue;
+    testConfig.acl = self.aclPopup.selectedItem.representedObject;
+    testConfig.domain = self.domainField.stringValue;
+  }
 
   NSData *testData =
       [@"Mist validation test" dataUsingEncoding:NSUTF8StringEncoding];

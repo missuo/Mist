@@ -28,6 +28,7 @@
     _bucket = @"";
     _accessKey = @"";
     _secretKey = @"";
+    _smmsToken = @"";
     _domain = @"";
     _saveKeyPath = @"{filename}.{ext}";
     _acl = @"public-read";
@@ -53,6 +54,8 @@
       _accessKey = dict[@"accessKey"];
     if (dict[@"secretKey"])
       _secretKey = dict[@"secretKey"];
+    if (dict[@"smmsToken"])
+      _smmsToken = dict[@"smmsToken"];
     if (dict[@"domain"])
       _domain = dict[@"domain"];
     if (dict[@"saveKeyPath"])
@@ -82,6 +85,7 @@
   [coder encodeObject:_bucket forKey:@"bucket"];
   [coder encodeObject:_accessKey forKey:@"accessKey"];
   [coder encodeObject:_secretKey forKey:@"secretKey"];
+  [coder encodeObject:_smmsToken forKey:@"smmsToken"];
   [coder encodeObject:_domain forKey:@"domain"];
   [coder encodeObject:_saveKeyPath forKey:@"saveKeyPath"];
   [coder encodeObject:_acl forKey:@"acl"];
@@ -110,6 +114,8 @@
         [coder decodeObjectOfClass:[NSString class] forKey:@"accessKey"] ?: @"";
     _secretKey =
         [coder decodeObjectOfClass:[NSString class] forKey:@"secretKey"] ?: @"";
+    _smmsToken =
+        [coder decodeObjectOfClass:[NSString class] forKey:@"smmsToken"] ?: @"";
     _domain =
         [coder decodeObjectOfClass:[NSString class] forKey:@"domain"] ?: @"";
     _saveKeyPath = [coder decodeObjectOfClass:[NSString class]
@@ -135,6 +141,7 @@
     @"bucket" : self.bucket ?: @"",
     @"accessKey" : self.accessKey ?: @"",
     @"secretKey" : self.secretKey ?: @"",
+    @"smmsToken" : self.smmsToken ?: @"",
     @"domain" : self.domain ?: @"",
     @"saveKeyPath" : self.saveKeyPath ?: @"",
     @"acl" : self.acl ?: @"",
@@ -164,6 +171,7 @@
   copy.bucket = [self.bucket copy];
   copy.accessKey = [self.accessKey copy];
   copy.secretKey = [self.secretKey copy];
+  copy.smmsToken = [self.smmsToken copy];
   copy.domain = [self.domain copy];
   copy.saveKeyPath = [self.saveKeyPath copy];
   copy.acl = [self.acl copy];

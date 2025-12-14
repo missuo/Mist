@@ -15,7 +15,8 @@ typedef NS_ENUM(NSInteger, MSTS3ProviderType) {
   MSTS3ProviderTypeCloudflareR2,
   MSTS3ProviderTypeBackblazeB2,
   MSTS3ProviderTypeMinIO,
-  MSTS3ProviderTypeCustom
+  MSTS3ProviderTypeCustom,
+  MSTS3ProviderTypeSMMS
 };
 
 @interface MSTS3Region : NSObject
