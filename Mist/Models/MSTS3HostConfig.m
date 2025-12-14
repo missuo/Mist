@@ -31,6 +31,7 @@
     _domain = @"";
     _saveKeyPath = @"{filename}.{ext}";
     _acl = @"public-read";
+    _shortLinkEnabled = NO;
     _isDefault = NO;
   }
   return self;
@@ -58,6 +59,8 @@
       _saveKeyPath = dict[@"saveKeyPath"];
     if (dict[@"acl"])
       _acl = dict[@"acl"];
+    if (dict[@"shortLinkEnabled"])
+      _shortLinkEnabled = [dict[@"shortLinkEnabled"] boolValue];
     if (dict[@"providerType"])
       _providerType = [dict[@"providerType"] integerValue];
     else if (dict[@"isCustomEndpoint"] && [dict[@"isCustomEndpoint"] boolValue])
@@ -82,6 +85,7 @@
   [coder encodeObject:_domain forKey:@"domain"];
   [coder encodeObject:_saveKeyPath forKey:@"saveKeyPath"];
   [coder encodeObject:_acl forKey:@"acl"];
+  [coder encodeBool:_shortLinkEnabled forKey:@"shortLinkEnabled"];
   [coder encodeBool:_isDefault forKey:@"isDefault"];
 }
 
@@ -113,6 +117,7 @@
                        ?: @"";
     _acl = [coder decodeObjectOfClass:[NSString class] forKey:@"acl"]
                ?: @"public-read";
+    _shortLinkEnabled = [coder decodeBoolForKey:@"shortLinkEnabled"];
     _isDefault = [coder decodeBoolForKey:@"isDefault"];
   }
   return self;
@@ -133,6 +138,7 @@
     @"domain" : self.domain ?: @"",
     @"saveKeyPath" : self.saveKeyPath ?: @"",
     @"acl" : self.acl ?: @"",
+    @"shortLinkEnabled" : @(self.shortLinkEnabled),
     @"isDefault" : @(self.isDefault)
   };
 }
@@ -161,6 +167,7 @@
   copy.domain = [self.domain copy];
   copy.saveKeyPath = [self.saveKeyPath copy];
   copy.acl = [self.acl copy];
+  copy.shortLinkEnabled = self.shortLinkEnabled;
   copy.isDefault = NO;
   return copy;
 }

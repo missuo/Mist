@@ -11,6 +11,7 @@
 #import "MSTPreferencesWindowController.h"
 #import "MSTS3HostConfig.h"
 #import "MSTS3Uploader.h"
+#import "MSTShortLinkService.h"
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <UserNotifications/UserNotifications.h>
 
@@ -31,6 +32,7 @@
 @property(nonatomic, strong, nullable) NSMutableArray<NSString *> *batchUploadURLs;
 @property(nonatomic, assign) NSInteger batchUploadTotal;
 @property(nonatomic, assign) NSInteger batchUploadCompleted;
+@property(nonatomic, strong) MSTShortLinkService *shortLinkService;
 
 @end
 
@@ -44,19 +46,25 @@ static MSTAppDelegate *_shared = nil;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
   _shared = self;
+  
+  NSLog(@"[Mist] Application did finish launching");
+  NSLog(@"[Mist] Bundle identifier: %@", [[NSBundle mainBundle] bundleIdentifier]);
 
   [self setupMainMenu];
   [self setupStatusBar];
   [self setupMenu];
   [self registerNotifications];
   [self requestNotificationPermission];
+  self.shortLinkService = [[MSTShortLinkService alloc] init];
   
   // Register for URL events
+  NSLog(@"[Mist] Registering URL event handler");
   [[NSAppleEventManager sharedAppleEventManager]
       setEventHandler:self
           andSelector:@selector(handleURLEvent:withReplyEvent:)
         forEventClass:kInternetEventClass
            andEventID:kAEGetURL];
+  NSLog(@"[Mist] URL event handler registered");
 }
 
 #pragma mark - URL Scheme Handler
@@ -71,7 +79,7 @@ static MSTAppDelegate *_shared = nil;
     return;
   }
   
-  // Handle mist://files?path1,path2,path3
+  // Handle mist://files?path1,path2,path3 (from Services or other sources)
   if ([url.host isEqualToString:@"files"]) {
     NSString *query = url.query;
     if (query.length > 0) {
@@ -84,7 +92,10 @@ static MSTAppDelegate *_shared = nil;
 }
 
 - (void)uploadFilesAtPaths:(NSArray<NSString *> *)paths {
+  NSLog(@"[Mist] uploadFilesAtPaths called with %lu paths", (unsigned long)paths.count);
+  
   if (paths.count == 0) {
+    NSLog(@"[Mist] No paths to upload");
     return;
   }
   
@@ -95,9 +106,12 @@ static MSTAppDelegate *_shared = nil;
   
   // Upload all files
   for (NSString *path in paths) {
+    NSLog(@"[Mist] Processing path: %@", path);
     NSString *decodedPath = [path stringByRemovingPercentEncoding];
+    NSLog(@"[Mist] Decoded path: %@", decodedPath);
     NSURL *fileURL = [NSURL fileURLWithPath:decodedPath];
     if ([[NSFileManager defaultManager] fileExistsAtPath:decodedPath]) {
+      NSLog(@"[Mist] File exists, uploading: %@", decodedPath);
       [self uploadFileAtURLInBatch:fileURL];
     } else {
       NSLog(@"[Mist] File not found: %@", decodedPath);
@@ -130,10 +144,19 @@ static MSTAppDelegate *_shared = nil;
            completion:^(NSString *resultURL, NSError *error) {
              dispatch_async(dispatch_get_main_queue(), ^{
                if (resultURL) {
-                 [self.batchUploadURLs addObject:resultURL];
+                 [self maybeShortenURL:resultURL
+                                forHost:config
+                             completion:^(NSString *finalURL) {
+                               if (finalURL) {
+                                 [self.batchUploadURLs addObject:finalURL];
+                               }
+                               self.batchUploadCompleted++;
+                               [self checkBatchUploadCompletion];
+                             }];
+               } else {
+                 self.batchUploadCompleted++;
+                 [self checkBatchUploadCompletion];
                }
-               self.batchUploadCompleted++;
-               [self checkBatchUploadCompletion];
              });
            }];
 }
@@ -181,6 +204,36 @@ static MSTAppDelegate *_shared = nil;
     self.batchUploadTotal = 0;
     self.batchUploadCompleted = 0;
   }
+}
+
+- (void)maybeShortenURL:(NSString *)url
+                 forHost:(MSTS3HostConfig *)host
+              completion:(void (^)(NSString *finalURL))completion {
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  if (!host.shortLinkEnabled || manager.shortLinkAPIKey.length == 0) {
+    if (completion) {
+      completion(url);
+    }
+    return;
+  }
+
+  NSString *domain = manager.shortLinkDefaultDomain.length > 0
+                         ? manager.shortLinkDefaultDomain
+                         : @"s.ee";
+
+  [self.shortLinkService createShortURLForURL:url
+                                        domain:domain
+                                         apiKey:manager.shortLinkAPIKey
+                                     completion:^(NSString *shortURL,
+                                                  NSError *error) {
+                                       if (error) {
+                                         NSLog(@"[Mist] Short link failed: %@",
+                                               error.localizedDescription);
+                                       }
+                                       if (completion) {
+                                         completion(shortURL ?: url);
+                                       }
+                                     }];
 }
 
 - (void)setupMainMenu {

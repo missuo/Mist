@@ -40,6 +40,8 @@
 @property(nonatomic, strong) NSButton *validateButton;
 @property(nonatomic, strong) NSButton *saveButton;
 @property(nonatomic, strong) NSTextField *statusLabel;
+@property(nonatomic, strong) NSButton *shortLinkCheckbox;
+@property(nonatomic, strong) NSTextField *shortLinkNoteLabel;
 
 @property(nonatomic, strong) NSView *emptyView;
 
@@ -224,6 +226,27 @@
   [self.contentView addSubview:self.domainField];
   y -= row;
 
+  // Short links
+  self.shortLinkCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 18)];
+  self.shortLinkCheckbox.title = @"Enable s.ee short links for this host";
+  [self.shortLinkCheckbox setButtonType:NSButtonTypeSwitch];
+  self.shortLinkCheckbox.target = self;
+  self.shortLinkCheckbox.action = @selector(shortLinkChanged:);
+  [self.contentView addSubview:self.shortLinkCheckbox];
+  y -= 18;
+
+  CGFloat noteY = y - 10; // add gap between checkbox and note
+  self.shortLinkNoteLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(fieldX + 19, noteY, fieldWidth - 19, 24)];
+  self.shortLinkNoteLabel.font = [NSFont systemFontOfSize:11];
+  self.shortLinkNoteLabel.textColor = [NSColor tertiaryLabelColor];
+  self.shortLinkNoteLabel.bezeled = NO;
+  self.shortLinkNoteLabel.drawsBackground = NO;
+  self.shortLinkNoteLabel.editable = NO;
+  self.shortLinkNoteLabel.selectable = NO;
+  [self.contentView addSubview:self.shortLinkNoteLabel];
+  y = noteY - row;
+
   // Save Path
   [self addLabel:@"Save Path:" atY:y];
   self.saveKeyPathField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
@@ -352,6 +375,9 @@
   self.saveKeyPathField.stringValue =
       self.config.saveKeyPath ?: @"{year}/{month}/{day}/{filename}.{ext}";
 
+  self.shortLinkCheckbox.state = self.config.shortLinkEnabled ? NSControlStateValueOn : NSControlStateValueOff;
+  [self updateShortLinkNote];
+
   // Region
   for (NSMenuItem *item in self.regionPopup.itemArray) {
     if ([item.representedObject isEqualToString:self.config.region]) {
@@ -443,6 +469,19 @@
   self.endpointField.placeholderString = placeholder;
 }
 
+- (void)updateShortLinkNote {
+  NSString *apiKey = [MSTConfigManager sharedManager].shortLinkAPIKey;
+  if (apiKey.length == 0) {
+    self.shortLinkCheckbox.enabled = NO;
+    self.shortLinkNoteLabel.stringValue = @"Set s.ee API key in General to enable short links.";
+    self.shortLinkNoteLabel.textColor = [NSColor systemOrangeColor];
+  } else {
+    self.shortLinkCheckbox.enabled = YES;
+    self.shortLinkNoteLabel.stringValue = @"Uses default s.ee domain from General settings.";
+    self.shortLinkNoteLabel.textColor = [NSColor tertiaryLabelColor];
+  }
+}
+
 - (void)updateRegionsForProvider:(MSTS3ProviderType)provider {
   [self.regionPopup removeAllItems];
   for (MSTS3Region *region in [MSTS3Region regionsForProvider:provider]) {
@@ -474,6 +513,13 @@
     fieldFrame.origin.y = regionY;
     self.endpointField.frame = fieldFrame;
   }
+}
+
+- (void)shortLinkChanged:(id)sender {
+  BOOL enabled = (self.shortLinkCheckbox.state == NSControlStateValueOn);
+  self.config.shortLinkEnabled = enabled;
+  [[MSTConfigManager sharedManager] updateHostConfig:self.config];
+  [self updateShortLinkNote];
 }
 
 - (void)toggleAccessKeyVisibility:(id)sender {
@@ -544,6 +590,7 @@
   self.config.secretKey = self.secretKeyField.stringValue;
   self.config.acl = self.aclPopup.selectedItem.representedObject;
   self.config.domain = self.domainField.stringValue;
+  self.config.shortLinkEnabled = (self.shortLinkCheckbox.state == NSControlStateValueOn);
 
   NSString *savePath = self.saveKeyPathField.stringValue;
   self.config.saveKeyPath =

@@ -16,6 +16,9 @@ extern NSString * const kMSTDefaultHostId;
 extern NSString * const kMSTOutputFormat;
 extern NSString * const kMSTCompressFactor;
 extern NSString * const kMSTRemoveEXIF;
+extern NSString * const kMSTShortLinkAPIKey;
+extern NSString * const kMSTShortLinkDefaultDomain;
+extern NSString * const kMSTShortLinkDomains;
 extern NSString * const kMSTAppGroupIdentifier;
 
 #pragma mark - Notifications

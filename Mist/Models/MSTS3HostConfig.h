@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy) NSString *domain;
 @property(nonatomic, copy) NSString *saveKeyPath;
 @property(nonatomic, copy) NSString *acl;
+@property(nonatomic, assign) BOOL shortLinkEnabled;
 @property(nonatomic, assign) BOOL isDefault;
 
 - (instancetype)init;

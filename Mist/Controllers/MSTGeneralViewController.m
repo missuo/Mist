@@ -9,9 +9,10 @@
 #import "MSTConfigManager.h"
 #import "MSTConstants.h"
 #import "MSTiCloudSyncManager.h"
+#import "MSTShortLinkService.h"
 #import <ServiceManagement/ServiceManagement.h>
 
-@interface MSTGeneralViewController ()
+@interface MSTGeneralViewController () <NSTextFieldDelegate>
 
 @property(nonatomic, strong) NSButton *launchAtLoginCheckbox;
 
@@ -19,6 +20,14 @@
 @property(nonatomic, strong) NSSlider *compressionSlider;
 @property(nonatomic, strong) NSTextField *compressionLabel;
 @property(nonatomic, strong) NSButton *removeEXIFCheckbox;
+
+// Short links
+@property(nonatomic, strong) NSSecureTextField *shortLinkAPIKeyField;
+@property(nonatomic, strong) NSButton *shortLinkSaveButton;
+@property(nonatomic, strong) NSPopUpButton *shortLinkDomainPopup;
+@property(nonatomic, strong) NSButton *shortLinkRefreshButton;
+@property(nonatomic, strong) NSTextField *shortLinkStatusLabel;
+@property(nonatomic, strong) MSTShortLinkService *shortLinkService;
 
 // iCloud Sync
 @property(nonatomic, strong) NSButton *iCloudSyncCheckbox;
@@ -31,7 +40,7 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(500, 380);
+    self.preferredContentSize = NSMakeSize(500, 560);
   }
   return self;
 }
@@ -41,12 +50,13 @@
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, 380)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, 560)];
 }
 
 - (void)viewDidLoad {
   [super viewDidLoad];
   [self setupUI];
+  self.shortLinkService = [[MSTShortLinkService alloc] init];
   [self loadSettings];
   [self registerNotifications];
 }
@@ -80,7 +90,7 @@
   generalTitle.drawsBackground = NO;
   generalTitle.editable = NO;
   [self.view addSubview:generalTitle];
-  y -= 35;
+  y -= 32;
 
   // Launch at Login checkbox
   self.launchAtLoginCheckbox =
@@ -125,6 +135,82 @@
   self.lastSyncLabel.selectable = NO;
   [self.view addSubview:self.lastSyncLabel];
   y -= 40;
+
+  // Short Links section
+  NSTextField *shortLinkTitle =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(padding, y, contentWidth, 22)];
+  shortLinkTitle.stringValue = @"Short Links (s.ee)";
+  shortLinkTitle.font = [NSFont systemFontOfSize:14 weight:NSFontWeightSemibold];
+  shortLinkTitle.textColor = [NSColor labelColor];
+  shortLinkTitle.bezeled = NO;
+  shortLinkTitle.drawsBackground = NO;
+  shortLinkTitle.editable = NO;
+  [self.view addSubview:shortLinkTitle];
+  y -= 32;
+
+  NSTextField *apiKeyLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(padding, y, labelWidth, 18)];
+  apiKeyLabel.stringValue = @"API Key";
+  apiKeyLabel.font = [NSFont systemFontOfSize:13];
+  apiKeyLabel.textColor = [NSColor labelColor];
+  apiKeyLabel.bezeled = NO;
+  apiKeyLabel.drawsBackground = NO;
+  apiKeyLabel.editable = NO;
+  [self.view addSubview:apiKeyLabel];
+
+  CGFloat apiFieldWidth = contentWidth - labelWidth - 110;
+  self.shortLinkAPIKeyField = [[NSSecureTextField alloc]
+      initWithFrame:NSMakeRect(padding + labelWidth + 10, y, apiFieldWidth, 22)];
+  self.shortLinkAPIKeyField.placeholderString = @"Enter s.ee API Key";
+  self.shortLinkAPIKeyField.target = self;
+  self.shortLinkAPIKeyField.action = @selector(shortLinkAPIKeyChanged:);
+  self.shortLinkAPIKeyField.delegate = self;
+  [self.view addSubview:self.shortLinkAPIKeyField];
+
+  self.shortLinkSaveButton = [[NSButton alloc]
+      initWithFrame:NSMakeRect(padding + labelWidth + 10 + apiFieldWidth + 6, y - 1, 80, 24)];
+  self.shortLinkSaveButton.title = @"Save";
+  self.shortLinkSaveButton.bezelStyle = NSBezelStyleRounded;
+  self.shortLinkSaveButton.target = self;
+  self.shortLinkSaveButton.action = @selector(shortLinkSave:);
+  [self.view addSubview:self.shortLinkSaveButton];
+  y -= 30;
+
+  NSTextField *domainLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(padding, y + 2, labelWidth, 18)];
+  domainLabel.stringValue = @"Default Domain";
+  domainLabel.font = [NSFont systemFontOfSize:13];
+  domainLabel.textColor = [NSColor labelColor];
+  domainLabel.bezeled = NO;
+  domainLabel.drawsBackground = NO;
+  domainLabel.editable = NO;
+  [self.view addSubview:domainLabel];
+
+  self.shortLinkDomainPopup = [[NSPopUpButton alloc]
+      initWithFrame:NSMakeRect(padding + labelWidth + 10, y, contentWidth - labelWidth - 110, 26)];
+  self.shortLinkDomainPopup.target = self;
+  self.shortLinkDomainPopup.action = @selector(shortLinkDomainChanged:);
+  [self.view addSubview:self.shortLinkDomainPopup];
+
+  self.shortLinkRefreshButton = [[NSButton alloc]
+      initWithFrame:NSMakeRect(padding + contentWidth - 90, y, 90, 26)];
+  self.shortLinkRefreshButton.title = @"Refresh";
+  self.shortLinkRefreshButton.bezelStyle = NSBezelStyleRounded;
+  self.shortLinkRefreshButton.target = self;
+  self.shortLinkRefreshButton.action = @selector(refreshShortLinkDomains:);
+  [self.view addSubview:self.shortLinkRefreshButton];
+  y -= 24;
+
+  self.shortLinkStatusLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(padding + labelWidth + 10, y, contentWidth - labelWidth - 20, 16)];
+  self.shortLinkStatusLabel.font = [NSFont systemFontOfSize:11];
+  self.shortLinkStatusLabel.textColor = [NSColor tertiaryLabelColor];
+  self.shortLinkStatusLabel.bezeled = NO;
+  self.shortLinkStatusLabel.drawsBackground = NO;
+  self.shortLinkStatusLabel.editable = NO;
+  self.shortLinkStatusLabel.selectable = NO;
+  [self.view addSubview:self.shortLinkStatusLabel];
+  y -= 24;
   
   // Image Processing section
   NSTextField *imageTitle =
@@ -229,6 +315,13 @@
   }
   
   [self updateLastSyncLabel];
+
+  // Short links
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  self.shortLinkAPIKeyField.stringValue = manager.shortLinkAPIKey ?: @"";
+  self.shortLinkSaveButton.enabled = self.shortLinkAPIKeyField.stringValue.length > 0;
+  [self reloadShortLinkDomains];
+  [self updateShortLinkControlsEnabled];
 }
 
 - (void)launchAtLoginChanged:(NSButton *)sender {
@@ -265,6 +358,116 @@
     self.compressionLabel.stringValue = @"Off";
   } else {
     self.compressionLabel.stringValue = [NSString stringWithFormat:@"%ld%%", (long)value];
+  }
+}
+
+- (void)shortLinkAPIKeyChanged:(id)sender {
+  self.shortLinkSaveButton.enabled = self.shortLinkAPIKeyField.stringValue.length > 0;
+}
+
+- (void)shortLinkSave:(id)sender {
+  NSString *apiKey = [self.shortLinkAPIKeyField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  manager.shortLinkAPIKey = apiKey ?: @"";
+  [manager saveConfigs];
+  [self updateShortLinkControlsEnabled];
+  if (manager.shortLinkAPIKey.length > 0) {
+    [self refreshShortLinkDomains:nil];
+  } else {
+    self.shortLinkStatusLabel.stringValue = @"Enter API key to load domains.";
+  }
+}
+
+- (void)refreshShortLinkDomains:(id)sender {
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  NSString *apiKey = manager.shortLinkAPIKey.length > 0 ? manager.shortLinkAPIKey : self.shortLinkAPIKeyField.stringValue;
+  if (apiKey.length == 0) {
+    self.shortLinkStatusLabel.stringValue = @"API key required to fetch domains.";
+    self.shortLinkStatusLabel.textColor = [NSColor systemOrangeColor];
+    return;
+  }
+
+  self.shortLinkRefreshButton.enabled = NO;
+  self.shortLinkStatusLabel.stringValue = @"Refreshing domains...";
+  self.shortLinkStatusLabel.textColor = [NSColor tertiaryLabelColor];
+
+  [self.shortLinkService fetchAvailableDomainsWithAPIKey:apiKey
+                                              completion:^(NSArray<NSString *> *domains, NSError *error) {
+                                                self.shortLinkRefreshButton.enabled = YES;
+                                                if (error || domains.count == 0) {
+                                                  self.shortLinkStatusLabel.stringValue = error.localizedDescription ?: @"No domains returned";
+                                                  self.shortLinkStatusLabel.textColor = [NSColor systemRedColor];
+                                                  [self updateShortLinkControlsEnabled];
+                                                  return;
+                                                }
+
+                                                manager.shortLinkAPIKey = apiKey;
+                                                manager.shortLinkDomains = domains;
+                                                if (manager.shortLinkDefaultDomain.length == 0 || ![domains containsObject:manager.shortLinkDefaultDomain]) {
+                                                  manager.shortLinkDefaultDomain = domains.firstObject ?: @"s.ee";
+                                                }
+                                                [manager saveConfigs];
+                                                [self reloadShortLinkDomains];
+                                                self.shortLinkStatusLabel.stringValue = @"Domains updated";
+                                                self.shortLinkStatusLabel.textColor = [NSColor tertiaryLabelColor];
+                                                [self updateShortLinkControlsEnabled];
+                                              }];
+}
+
+- (void)shortLinkDomainChanged:(id)sender {
+  NSString *selected = self.shortLinkDomainPopup.selectedItem.title ?: @"";
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  manager.shortLinkDefaultDomain = selected;
+  [manager saveConfigs];
+}
+
+- (void)reloadShortLinkDomains {
+  MSTConfigManager *manager = [MSTConfigManager sharedManager];
+  NSMutableOrderedSet *domainsSet = [[NSMutableOrderedSet alloc] init];
+  if (manager.shortLinkDefaultDomain.length > 0) {
+    [domainsSet addObject:manager.shortLinkDefaultDomain];
+  }
+  for (NSString *d in manager.shortLinkDomains) {
+    if ([d isKindOfClass:[NSString class]] && d.length > 0) {
+      [domainsSet addObject:d];
+    }
+  }
+  if (domainsSet.count == 0) {
+    [domainsSet addObject:@"s.ee"];
+  }
+
+  [self.shortLinkDomainPopup removeAllItems];
+  for (NSString *d in domainsSet) {
+    [self.shortLinkDomainPopup addItemWithTitle:d];
+  }
+
+  NSString *current = manager.shortLinkDefaultDomain.length > 0 ? manager.shortLinkDefaultDomain : domainsSet.firstObject;
+  [self.shortLinkDomainPopup selectItemWithTitle:current];
+}
+
+- (void)updateShortLinkControlsEnabled {
+  BOOL hasKey = ([self.shortLinkAPIKeyField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]].length > 0) || [MSTConfigManager sharedManager].shortLinkAPIKey.length > 0;
+  self.shortLinkDomainPopup.enabled = hasKey;
+  self.shortLinkRefreshButton.enabled = hasKey;
+  self.shortLinkSaveButton.enabled = hasKey;
+  if (hasKey) {
+    self.shortLinkStatusLabel.textColor = [NSColor tertiaryLabelColor];
+    if (self.shortLinkDomainPopup.numberOfItems == 0) {
+      self.shortLinkStatusLabel.stringValue = @"Click Refresh to load domains.";
+    } else {
+      self.shortLinkStatusLabel.stringValue = @"Default domain for creating short links.";
+    }
+  } else {
+    self.shortLinkStatusLabel.textColor = [NSColor systemOrangeColor];
+    self.shortLinkStatusLabel.stringValue = @"Enter API key to enable s.ee short links.";
+  }
+}
+
+- (void)controlTextDidChange:(NSNotification *)notification {
+  if (notification.object == self.shortLinkAPIKeyField) {
+    BOOL hasText = [[self.shortLinkAPIKeyField.stringValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] length] > 0;
+    self.shortLinkSaveButton.enabled = hasText;
+    [self updateShortLinkControlsEnabled];
   }
 }
 

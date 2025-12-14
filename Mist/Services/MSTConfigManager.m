@@ -44,6 +44,8 @@
     _outputFormat = MSTOutputFormatURL;
     _compressFactor = 0; // 0 = no compression by default
     _removeEXIF = NO;
+    _shortLinkDefaultDomain = @"s.ee";
+    _shortLinkDomains = @[];
     [self loadConfigs];
     
     // Observe iCloud changes
@@ -268,6 +270,17 @@
   [self.userDefaults setInteger:self.outputFormat forKey:kMSTOutputFormat];
   [self.userDefaults setInteger:self.compressFactor forKey:kMSTCompressFactor];
   [self.userDefaults setBool:self.removeEXIF forKey:kMSTRemoveEXIF];
+  if (self.shortLinkAPIKey.length > 0) {
+    [self.userDefaults setObject:self.shortLinkAPIKey forKey:kMSTShortLinkAPIKey];
+  } else {
+    [self.userDefaults removeObjectForKey:kMSTShortLinkAPIKey];
+  }
+  if (self.shortLinkDefaultDomain.length > 0) {
+    [self.userDefaults setObject:self.shortLinkDefaultDomain forKey:kMSTShortLinkDefaultDomain];
+  }
+  if (self.shortLinkDomains) {
+    [self.userDefaults setObject:self.shortLinkDomains forKey:kMSTShortLinkDomains];
+  }
 
   [self.userDefaults synchronize];
   
@@ -312,6 +325,19 @@
   
   if ([self.userDefaults objectForKey:kMSTRemoveEXIF]) {
     self.removeEXIF = [self.userDefaults boolForKey:kMSTRemoveEXIF];
+  }
+
+  NSString *apiKey = [self.userDefaults stringForKey:kMSTShortLinkAPIKey];
+  if (apiKey) {
+    self.shortLinkAPIKey = apiKey;
+  }
+  NSString *defaultDomain = [self.userDefaults stringForKey:kMSTShortLinkDefaultDomain];
+  if (defaultDomain.length > 0) {
+    self.shortLinkDefaultDomain = defaultDomain;
+  }
+  NSArray *domains = [self.userDefaults arrayForKey:kMSTShortLinkDomains];
+  if ([domains isKindOfClass:[NSArray class]]) {
+    self.shortLinkDomains = domains;
   }
 }
 
