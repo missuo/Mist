@@ -57,6 +57,11 @@
          selector:@selector(iCloudDataDidChange:)
              name:MSTiCloudDataDidChangeNotification
            object:nil];
+  [[NSNotificationCenter defaultCenter]
+      addObserver:self
+         selector:@selector(iCloudDataDidChange:)
+             name:MSTiCloudSyncDateDidChangeNotification
+           object:nil];
 }
 
 - (void)setupUI {

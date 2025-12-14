@@ -64,6 +64,8 @@ static NSString * const kMSTiCloudRemoveEXIF = @"iCloudRemoveEXIF";
       // Trigger initial sync
       BOOL syncResult = [_cloudStore synchronize];
       NSLog(@"[iCloud Sync] Initial synchronize result: %@", syncResult ? @"SUCCESS" : @"FAILED");
+      // Debug: dump all keys to see what's in the store
+      [self debugDumpAllKeys];
     } else {
       NSLog(@"[iCloud Sync] WARNING: iCloud is not available. User may not be signed in to iCloud.");
     }
@@ -301,10 +303,11 @@ static NSString * const kMSTiCloudRemoveEXIF = @"iCloudRemoveEXIF";
     [[NSUserDefaults standardUserDefaults] setObject:dateData forKey:kMSTiCloudLastSyncDate];
     [[NSUserDefaults standardUserDefaults] synchronize];
   }
-  
-  // Post notification that sync date changed
+
+  // Post notification that sync date changed (use a different notification
+  // to avoid infinite recursion with MSTiCloudDataDidChangeNotification)
   [[NSNotificationCenter defaultCenter]
-      postNotificationName:MSTiCloudDataDidChangeNotification
+      postNotificationName:MSTiCloudSyncDateDidChangeNotification
                     object:nil];
 }
 
@@ -314,13 +317,13 @@ static NSString * const kMSTiCloudRemoveEXIF = @"iCloudRemoveEXIF";
   NSLog(@"========== iCloud Sync Status ==========");
   NSLog(@"iCloud Available: %@", self.iCloudAvailable ? @"YES ✓" : @"NO ✗");
   NSLog(@"Sync Enabled: %@", self.iCloudSyncEnabled ? @"YES ✓" : @"NO ✗");
-  
+
   if (self.iCloudAvailable) {
     // Check if data exists in iCloud
     NSArray *hostConfigs = [self getHostConfigs];
     NSString *defaultHostId = [self getDefaultHostId];
     NSNumber *outputFormat = [self getOutputFormat];
-    
+
     NSLog(@"Data in iCloud:");
     NSLog(@"  - Host Configs: %lu items", (unsigned long)(hostConfigs ? hostConfigs.count : 0));
     NSLog(@"  - Default Host ID: %@", defaultHostId ?: @"(none)");
@@ -333,6 +336,35 @@ static NSString * const kMSTiCloudRemoveEXIF = @"iCloudRemoveEXIF";
     NSLog(@"  4. Missing iCloud capability in Xcode");
   }
   NSLog(@"======================================");
+}
+
+- (void)debugDumpAllKeys {
+  NSLog(@"========== iCloud Raw Data Dump ==========");
+  if (!self.cloudStore) {
+    NSLog(@"ERROR: cloudStore is nil");
+    return;
+  }
+
+  // Get all keys in the store
+  NSDictionary *allData = [self.cloudStore dictionaryRepresentation];
+  NSLog(@"Total keys in iCloud store: %lu", (unsigned long)allData.count);
+
+  for (NSString *key in allData) {
+    id value = allData[key];
+    if ([value isKindOfClass:[NSData class]]) {
+      NSData *data = (NSData *)value;
+      NSLog(@"  [%@] = <NSData %lu bytes>", key, (unsigned long)data.length);
+      // Try to parse as JSON
+      NSError *error;
+      id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+      if (json) {
+        NSLog(@"    -> JSON: %@", json);
+      }
+    } else {
+      NSLog(@"  [%@] = %@", key, value);
+    }
+  }
+  NSLog(@"==========================================");
 }
 
 @end

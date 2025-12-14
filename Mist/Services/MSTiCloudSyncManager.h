@@ -38,6 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateLastSyncDate;
 
 - (void)printStatus;
+- (void)debugDumpAllKeys;
 
 @end
 

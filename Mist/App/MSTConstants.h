@@ -26,6 +26,7 @@ extern NSNotificationName const MSTUploadDidFinishNotification;
 extern NSNotificationName const MSTUploadDidFailNotification;
 extern NSNotificationName const MSTUploadProgressNotification;
 extern NSNotificationName const MSTiCloudDataDidChangeNotification;
+extern NSNotificationName const MSTiCloudSyncDateDidChangeNotification;
 
 
 #pragma mark - Output Format

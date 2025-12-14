@@ -77,41 +77,32 @@
   if (iCloudSyncEnabled && !wasEnabled) {
     // First time enabling iCloud sync
     NSLog(@"[Config] Enabling iCloud sync for the first time");
-    
+
     // Strategy: Check iCloud first, only upload local data if iCloud is empty
     // This prevents new devices from overwriting existing iCloud data with defaults
-    
+
     // Immediately check if iCloud already has data
     NSArray *cloudConfigs = [self.iCloudSyncManager getHostConfigs];
     BOOL iCloudHasData = (cloudConfigs != nil && cloudConfigs.count > 0);
-    
+
     if (iCloudHasData) {
       // iCloud already has data (from another device)
-      NSLog(@"[Config] Found %lu existing configs in iCloud, loading them...", 
+      NSLog(@"[Config] Found %lu existing configs in iCloud, loading them...",
             (unsigned long)cloudConfigs.count);
       [self loadFromiCloudIfAvailable];
     } else if (self.mutableHostConfigs.count > 0) {
       // iCloud is empty, but we have local configs - upload them
-      NSLog(@"[Config] iCloud is empty, uploading %lu local configs...", 
+      NSLog(@"[Config] iCloud is empty, uploading %lu local configs...",
             (unsigned long)self.mutableHostConfigs.count);
       [self syncToiCloud];
     } else {
-      // Both iCloud and local are empty
-      NSLog(@"[Config] No configs in iCloud or locally");
+      // Both iCloud and local are empty - iCloud sync might still be in progress
+      NSLog(@"[Config] No configs in iCloud or locally, will retry...");
     }
-    
-    // Also schedule a delayed check in case iCloud sync is still in progress
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), 
-                   dispatch_get_main_queue(), ^{
-      NSLog(@"[Config] Delayed check for iCloud data...");
-      [self loadFromiCloudIfAvailable];
-      
-      // Notify UI to refresh
-      [[NSNotificationCenter defaultCenter]
-          postNotificationName:MSTConfigDidChangeNotification
-                        object:nil];
-    });
-    
+
+    // Schedule multiple retries for iCloud sync - initial sync can take time
+    [self scheduleICloudRetryWithAttempt:1 maxAttempts:5];
+
     // Notify UI immediately
     [[NSNotificationCenter defaultCenter]
         postNotificationName:MSTConfigDidChangeNotification
@@ -121,6 +112,58 @@
 
 - (BOOL)iCloudAvailable {
   return self.iCloudSyncManager.iCloudAvailable;
+}
+
+- (void)scheduleICloudRetryWithAttempt:(NSInteger)attempt maxAttempts:(NSInteger)maxAttempts {
+  if (!self.iCloudSyncEnabled || !self.iCloudAvailable) {
+    return;
+  }
+
+  // Exponential backoff: 2s, 4s, 6s, 8s, 10s
+  NSTimeInterval delay = attempt * 2.0;
+
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+    if (!self.iCloudSyncEnabled) {
+      return;
+    }
+
+    NSLog(@"[Config] iCloud retry attempt %ld/%ld", (long)attempt, (long)maxAttempts);
+
+    // Check if we already have data loaded
+    if (self.mutableHostConfigs.count > 0) {
+      NSLog(@"[Config] Already have %lu configs, no need to retry",
+            (unsigned long)self.mutableHostConfigs.count);
+      if (!self.iCloudSyncManager.lastSyncDate) {
+        [self.iCloudSyncManager updateLastSyncDate];
+      }
+      return;
+    }
+
+    // Try to load from iCloud
+    [self loadFromiCloudIfAvailable];
+
+    // Check if we got data
+    if (self.mutableHostConfigs.count > 0) {
+      NSLog(@"[Config] Successfully loaded %lu configs from iCloud on attempt %ld",
+            (unsigned long)self.mutableHostConfigs.count, (long)attempt);
+      [[NSNotificationCenter defaultCenter]
+          postNotificationName:MSTConfigDidChangeNotification
+                        object:nil];
+    } else if (attempt < maxAttempts) {
+      // Schedule next retry
+      [self scheduleICloudRetryWithAttempt:attempt + 1 maxAttempts:maxAttempts];
+    } else {
+      // Max attempts reached
+      NSLog(@"[Config] Max iCloud retry attempts reached, no data found");
+      if (!self.iCloudSyncManager.lastSyncDate) {
+        [self.iCloudSyncManager updateLastSyncDate];
+      }
+      [[NSNotificationCenter defaultCenter]
+          postNotificationName:MSTConfigDidChangeNotification
+                        object:nil];
+    }
+  });
 }
 
 #pragma mark - Host Config Management
@@ -334,17 +377,24 @@
   if (!self.iCloudSyncEnabled || !self.iCloudAvailable) {
     return;
   }
-  
-  // Sync host configs
+
+  // Sync host configs - copy array to avoid mutation during iteration
+  NSArray *hostConfigsCopy;
+  NSString *defaultHostId;
+  @synchronized (self) {
+    hostConfigsCopy = [self.mutableHostConfigs copy];
+    defaultHostId = self.defaultHost.identifier;
+  }
+
   NSMutableArray *configDicts = [NSMutableArray array];
-  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+  for (MSTS3HostConfig *config in hostConfigsCopy) {
     [configDicts addObject:[config toDictionary]];
   }
   [self.iCloudSyncManager syncHostConfigs:configDicts];
-  
-  // Sync default host ID
-  [self.iCloudSyncManager syncDefaultHostId:self.defaultHost.identifier];
-  
+
+  // Sync default host ID (nil is safe)
+  [self.iCloudSyncManager syncDefaultHostId:defaultHostId];
+
   // Sync other settings
   [self.iCloudSyncManager syncOutputFormat:self.outputFormat];
   [self.iCloudSyncManager syncCompressFactor:self.compressFactor];
@@ -355,28 +405,34 @@
   if (!self.iCloudSyncEnabled || !self.iCloudAvailable) {
     return;
   }
-  
+
   NSLog(@"[Config] Loading data from iCloud...");
   BOOL hasCloudData = NO;
-  
+
   // Load host configs from iCloud
   NSArray *cloudConfigDicts = [self.iCloudSyncManager getHostConfigs];
   if (cloudConfigDicts && cloudConfigDicts.count > 0) {
     NSLog(@"[Config] Found %lu host configs in iCloud", (unsigned long)cloudConfigDicts.count);
     hasCloudData = YES;
-    
-    // Always use iCloud data as source of truth
-    [self.mutableHostConfigs removeAllObjects];
+
+    // Parse configs first before modifying mutableHostConfigs
+    NSMutableArray *parsedConfigs = [NSMutableArray array];
     for (NSDictionary *dict in cloudConfigDicts) {
       MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:dict];
       if (config) {
-        [self.mutableHostConfigs addObject:config];
+        [parsedConfigs addObject:config];
       }
     }
-    
+
+    // Now safely update mutableHostConfigs
+    @synchronized (self) {
+      [self.mutableHostConfigs removeAllObjects];
+      [self.mutableHostConfigs addObjectsFromArray:parsedConfigs];
+    }
+
     // Save to local storage
     [self.userDefaults setObject:cloudConfigDicts forKey:kMSTHostConfigs];
-    NSLog(@"[Config] Updated local storage with %lu iCloud host configs", 
+    NSLog(@"[Config] Updated local storage with %lu iCloud host configs",
           (unsigned long)self.mutableHostConfigs.count);
   } else {
     NSLog(@"[Config] No host configs found in iCloud");
@@ -392,6 +448,14 @@
       self.defaultHost.isDefault = YES;
       [self.userDefaults setObject:cloudDefaultHostId forKey:kMSTDefaultHostId];
     }
+  }
+
+  // Fallback: if no default host but we have configs, set first one as default
+  if (!self.defaultHost && self.mutableHostConfigs.count > 0) {
+    NSLog(@"[Config] No default host set, using first config as default");
+    self.defaultHost = self.mutableHostConfigs.firstObject;
+    self.defaultHost.isDefault = YES;
+    [self.userDefaults setObject:self.defaultHost.identifier forKey:kMSTDefaultHostId];
   }
   
   // Load output format from iCloud
