@@ -49,33 +49,29 @@ jobs:
             -scheme Mist \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)" \
-            DEVELOPMENT_TEAM="ZDY6H3JN3N" \
-            OTHER_CODE_SIGN_FLAGS="--timestamp --options=runtime" \
-            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="ZDY6H3JN3N"
 
-      - name: Re-sign app with entitlements
+      - name: Re-sign with Developer ID
         run: |
           APP_PATH="build/Build/Products/Release/Mist.app"
           IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
 
-          # Sign the extension with its entitlements
+          # Sign the app extension first
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \
-            --entitlements "ShareExtension/ShareExtension.entitlements" \
+            --deep \
             "$APP_PATH/Contents/PlugIns/MistShareExtension.appex"
 
-          # Sign the main app with its entitlements
+          # Then sign the main app
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \
-            --entitlements "Mist/Mist.entitlements" \
+            --deep \
             "$APP_PATH"
 
-          # Verify
+          # Verify signature
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 
       - name: Create ZIP for notarization
