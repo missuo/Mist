@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Gear outer shape -->
+  <path d="M32 4c1.5 0 2.8 1 3.2 2.4l.8 3.2c2.1.6 4 1.5 5.8 2.6l3-1.5c1.3-.7 2.9-.3 3.8.9l2.8 2.8c1.2.9 1.6 2.5.9 3.8l-1.5 3c1.1 1.8 2 3.7 2.6 5.8l3.2.8c1.4.4 2.4 1.7 2.4 3.2v4c0 1.5-1 2.8-2.4 3.2l-3.2.8c-.6 2.1-1.5 4-2.6 5.8l1.5 3c.7 1.3.3 2.9-.9 3.8l-2.8 2.8c-.9 1.2-2.5 1.6-3.8.9l-3-1.5c-1.8 1.1-3.7 2-5.8 2.6l-.8 3.2c-.4 1.4-1.7 2.4-3.2 2.4h-4c-1.5 0-2.8-1-3.2-2.4l-.8-3.2c-2.1-.6-4-1.5-5.8-2.6l-3 1.5c-1.3.7-2.9.3-3.8-.9l-2.8-2.8c-1.2-.9-1.6-2.5-.9-3.8l1.5-3c-1.1-1.8-2-3.7-2.6-5.8l-3.2-.8C5 36.8 4 35.5 4 34v-4c0-1.5 1-2.8 2.4-3.2l3.2-.8c.6-2.1 1.5-4 2.6-5.8l-1.5-3c-.7-1.3-.3-2.9.9-3.8l2.8-2.8c.9-1.2 2.5-1.6 3.8-.9l3 1.5c1.8-1.1 3.7-2 5.8-2.6l.8-3.2C28.2 5 29.5 4 31 4h2z" fill="#4A90D9" stroke="#2171CD" stroke-width="1.5"/>
+  <!-- Inner circle -->
+  <circle cx="32" cy="32" r="16" fill="#D6E6F9" stroke="#2171CD" stroke-width="1.5"/>
+  <!-- Sliders -->
+  <line x1="24" y1="22" x2="24" y2="42" stroke="#2171CD" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="24" cy="36" r="4" fill="white" stroke="#2171CD" stroke-width="1.5"/>
+  <line x1="32" y1="22" x2="32" y2="42" stroke="#2171CD" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="28" r="4" fill="white" stroke="#2171CD" stroke-width="1.5"/>
+  <line x1="40" y1="22" x2="40" y2="42" stroke="#2171CD" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="40" cy="34" r="4" fill="white" stroke="#2171CD" stroke-width="1.5"/>
+</svg>
