@@ -46,26 +46,27 @@ jobs:
             -scheme Mist \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)" \
-            DEVELOPMENT_TEAM="ZDY6H3JN3N" \
-            OTHER_CODE_SIGN_FLAGS="--options=runtime"
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Sign app
         run: |
           APP_PATH="build/Build/Products/Release/Mist.app"
           IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
 
-          # Sign the extension first
+          # Sign the extension first with its entitlements
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \
+            --entitlements "ShareExtension/ShareExtension.entitlements" \
             "$APP_PATH/Contents/PlugIns/MistShareExtension.appex"
 
-          # Sign the main app
+          # Sign the main app with its entitlements
           codesign --force --options runtime \
             --sign "$IDENTITY" \
             --timestamp \
+            --entitlements "Mist/Mist.entitlements" \
             "$APP_PATH"
 
           # Verify
