@@ -2,12 +2,12 @@
 
 <div align="center">
   <img src="./AppIcon.png" alt="Mist Icon" width="128" height="128">
-  <p><strong>A native macOS application for seamless S3-compatible cloud storage management</strong></p>
+  <p><strong>A native macOS menu bar uploader for S3-compatible storage and SM.MS image hosting</strong></p>
 </div>
 
 ## Overview
 
-Mist is a lightweight, native macOS menu bar application that simplifies uploading images and files to S3-compatible cloud storage services. With drag-and-drop functionality, batch upload support, and automatic clipboard integration, Mist streamlines your workflow for sharing files quickly and efficiently.
+Mist is a lightweight, native macOS menu bar application that simplifies uploading images and files to cloud destinations. With drag-and-drop uploads, modular providers (S3-compatible services and SM.MS image hosting), batch support, and automatic clipboard integration, Mist streamlines your workflow for sharing files quickly and efficiently.
 
 ## Features
 
@@ -15,16 +15,17 @@ Mist is a lightweight, native macOS menu bar application that simplifies uploadi
 - **🚀 Quick Upload**: Drag and drop files directly to the menu bar icon
 - **📋 Auto Clipboard**: Automatically copies uploaded file URLs to clipboard
 - **🔄 Batch Upload**: Upload multiple files simultaneously with progress tracking
-- **🔗 Share Extension**: Upload files from any app using macOS Share menu
+- **🖱️ Finder Services**: Upload directly from Finder via right-click Services
 - **📱 URL Scheme**: Upload files via `mist://` URL scheme for automation
 
-### S3 Provider Support
+### Upload Provider Support
 - Amazon S3
 - Wasabi
 - Cloudflare R2
 - Backblaze B2
 - MinIO
 - Custom S3-compatible endpoints
+- SM.MS image hosting (token-based, image-only)
 
 ### Advanced Features
 - **☁️ iCloud Sync**: Synchronize configurations across all your Apple devices
@@ -33,7 +34,7 @@ Mist is a lightweight, native macOS menu bar application that simplifies uploadi
   - EXIF metadata removal for privacy
   - Format conversion (JPEG, PNG, HEIC, WebP)
 - **⚙️ Multi-Host Management**: 
-  - Manage multiple S3 configurations
+  - Manage multiple host configurations
   - Quick switch between different hosts
   - Duplicate configurations with one click
 - **🎯 Flexible Path Templating**: Customize upload paths with variables like `{filename}`, `{ext}`, `{year}`, `{month}`, `{day}`
@@ -57,20 +58,20 @@ Download the latest version from the [Releases](https://github.com/missuo/Mist/r
 
 ## Configuration
 
-### Adding an S3 Host
+### Adding a Host
 
 1. Click the Mist menu bar icon
 2. Select **Preferences** → **Hosts**
 3. Click the **+** button to add a new host
-4. Configure your S3 settings:
+4. Configure provider-specific settings:
 
 #### Basic Settings
 - **Name**: A friendly name for this configuration
-- **Provider**: Select your S3 provider
-- **Region**: Choose the appropriate region (for AWS S3)
-- **Bucket**: Your S3 bucket name
-- **Access Key**: Your S3 access key ID
-- **Secret Key**: Your S3 secret access key
+- **Provider**: Choose S3-compatible providers or SM.MS
+- **Region**: Required for AWS S3 (auto-adjusts per provider)
+- **Bucket**: S3 bucket name (hidden for SM.MS)
+- **Access Key / Secret Key**: S3 credentials (hidden for SM.MS)
+- **Token**: SM.MS API token (only visible for SM.MS)
 
 #### Advanced Settings
 - **Custom Endpoint**: Override default endpoint (for custom S3 services)
@@ -82,6 +83,8 @@ Download the latest version from the [Releases](https://github.com/missuo/Mist/r
   - `{timestamp}`: Unix timestamp
   - Example: `images/{year}/{month}/{filename}.{ext}`
 - **ACL**: Set object access control (public-read, private, etc.)
+
+*Note*: SM.MS uploads only require the API token; S3-specific fields (bucket, keys, ACL, path, domain) are hidden and not used.
 
 ### Managing Hosts
 
@@ -103,11 +106,6 @@ Download the latest version from the [Releases](https://github.com/missuo/Mist/r
 2. Files will be uploaded automatically
 3. URLs are copied to clipboard when complete
 4. Click the notification to open the URL
-
-### Upload via Share Extension
-1. Right-click any file in Finder
-2. Select **Share** → **Mist**
-3. File uploads and URL is copied automatically
 
 ### Upload via Services (Right-Click Menu)
 Install the Mist Upload Service for direct Finder integration:
@@ -136,8 +134,6 @@ open "mist://files?/path/to/image.png"
 open "mist://files?/path/to/file1.jpg,/path/to/file2.png"
 ```
 
-**Note**: The Share Extension uses a different internal mechanism (`mist://share-session?<sessionID>`) that passes security-scoped bookmarks through the App Group container for proper sandboxed file access.
-
 ### Quick Actions
 - Click **Open Last Upload** to open the most recently uploaded file
 - View upload history in the menu
@@ -153,7 +149,7 @@ Mist supports syncing configurations across all your Apple devices using iCloud.
 3. All host configurations and settings will sync automatically
 
 ### What Gets Synced
-- All S3 host configurations
+- All host configurations (S3 providers and SM.MS)
 - Default host selection
 - Image processing settings
 - Output format preferences
@@ -172,7 +168,7 @@ Sensitive credentials (Access Keys and Secret Keys) are synced via iCloud. Ensur
 
 Mist requires the following permissions:
 
-- **Network**: To upload files to S3-compatible services
+- **Network**: To upload files to configured providers
 - **File Access**: To read files you choose to upload
 - **Notifications**: To notify you when uploads complete
 - **iCloud**: (Optional) To sync configurations across devices
@@ -199,9 +195,8 @@ Mist/
 ├── App/                    # Application lifecycle and delegates
 ├── Controllers/            # View controllers for UI
 ├── Models/                 # Data models (S3 config, regions)
-├── Services/               # Core services (upload, config, iCloud sync)
+├── Services/               # Core services (upload, provider system, config, iCloud sync)
 ├── Resources/              # Assets, icons, and resources
-└── ShareExtension/         # Share extension target
 ```
 
 ### Dependencies
@@ -219,6 +214,7 @@ Mist is built with native macOS frameworks:
 - Check bucket permissions (upload permission required)
 - Ensure network connectivity
 - Verify the bucket region matches your configuration
+- For SM.MS, confirm your API token is valid
 
 ### iCloud Sync Not Working
 - Confirm you're signed in to iCloud
@@ -226,10 +222,10 @@ Mist is built with native macOS frameworks:
 - Verify network connection
 - Try toggling iCloud Sync off and on
 
-### Share Extension Not Appearing
-- Restart your Mac
-- Check System Preferences → Extensions → Share Menu
-- Ensure Mist is enabled in the share menu list
+### Services Not Appearing
+- Re-run `./scripts/install-service.sh`
+- Open System Settings → Keyboard → Keyboard Shortcuts → Services and enable **Upload to Mist**
+- Run `/System/Library/CoreServices/pbs -flush` then `killall Finder`
 
 ### URLs Not Copying to Clipboard
 - Check System Preferences → Security & Privacy → Automation
