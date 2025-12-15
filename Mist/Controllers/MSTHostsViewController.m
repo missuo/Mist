@@ -11,6 +11,7 @@
 #import "MSTS3ConfigViewController.h"
 #import "MSTS3HostConfig.h"
 #import "MSTS3Region.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @interface MSTHostsViewController () <NSTableViewDelegate,
                                       NSTableViewDataSource>
@@ -24,6 +25,8 @@
 @property(nonatomic, strong) NSButton *removeButton;
 @property(nonatomic, strong) NSButton *duplicateButton;
 @property(nonatomic, strong) NSButton *defaultButton;
+@property(nonatomic, strong) NSButton *exportButton;
+@property(nonatomic, strong) NSButton *importButton;
 
 @end
 
@@ -121,6 +124,22 @@
                                     frame:NSMakeRect(88, 2, 28, 28)];
   self.defaultButton.action = @selector(setDefaultHost:);
   [toolbar addSubview:self.defaultButton];
+
+  // Export button (right side)
+  self.exportButton =
+      [self createToolbarButtonWithSymbol:@"square.and.arrow.up"
+                                  tooltip:@"Export Configs"
+                                    frame:NSMakeRect(sidebarWidth - 60, 2, 28, 28)];
+  self.exportButton.action = @selector(exportConfigs:);
+  [toolbar addSubview:self.exportButton];
+
+  // Import button (right side)
+  self.importButton =
+      [self createToolbarButtonWithSymbol:@"square.and.arrow.down"
+                                  tooltip:@"Import Configs"
+                                    frame:NSMakeRect(sidebarWidth - 32, 2, 28, 28)];
+  self.importButton.action = @selector(importConfigs:);
+  [toolbar addSubview:self.importButton];
 
   [leftPanel addSubview:toolbar];
 
@@ -276,6 +295,81 @@
   self.removeButton.enabled = hasSelection;
   self.duplicateButton.enabled = hasSelection;
   self.defaultButton.enabled = hasSelection && !isDefault;
+  self.exportButton.enabled = [MSTConfigManager sharedManager].hostConfigs.count > 0;
+}
+
+- (void)exportConfigs:(id)sender {
+  NSSavePanel *panel = [NSSavePanel savePanel];
+  panel.title = @"Export Configs";
+  panel.nameFieldStringValue = @"mist-config.json";
+  panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"json"]];
+  panel.canCreateDirectories = YES;
+
+  [panel beginSheetModalForWindow:self.view.window
+                completionHandler:^(NSModalResponse result) {
+                  if (result == NSModalResponseOK && panel.URL) {
+                    NSError *error = nil;
+                    BOOL success = [[MSTConfigManager sharedManager] exportConfigsToURL:panel.URL
+                                                                                  error:&error];
+                    if (!success) {
+                      NSAlert *alert = [[NSAlert alloc] init];
+                      alert.messageText = @"Export Failed";
+                      alert.informativeText = error.localizedDescription ?: @"Unknown error";
+                      alert.alertStyle = NSAlertStyleWarning;
+                      [alert addButtonWithTitle:@"OK"];
+                      [alert runModal];
+                    }
+                  }
+                }];
+}
+
+- (void)importConfigs:(id)sender {
+  NSOpenPanel *panel = [NSOpenPanel openPanel];
+  panel.title = @"Import Configs";
+  panel.allowedContentTypes = @[[UTType typeWithFilenameExtension:@"json"]];
+  panel.allowsMultipleSelection = NO;
+  panel.canChooseDirectories = NO;
+
+  [panel beginSheetModalForWindow:self.view.window
+                completionHandler:^(NSModalResponse result) {
+                  if (result == NSModalResponseOK && panel.URL) {
+                    // Confirm import will replace existing configs
+                    NSAlert *confirmAlert = [[NSAlert alloc] init];
+                    confirmAlert.messageText = @"Import Configs";
+                    confirmAlert.informativeText = @"Importing will replace all existing host configurations. Do you want to continue?";
+                    confirmAlert.alertStyle = NSAlertStyleWarning;
+                    [confirmAlert addButtonWithTitle:@"Import"];
+                    [confirmAlert addButtonWithTitle:@"Cancel"];
+
+                    NSModalResponse confirmResult = [confirmAlert runModal];
+                    if (confirmResult != NSAlertFirstButtonReturn) {
+                      return;
+                    }
+
+                    NSError *error = nil;
+                    BOOL success = [[MSTConfigManager sharedManager] importConfigsFromURL:panel.URL
+                                                                                    error:&error];
+                    if (!success) {
+                      NSAlert *alert = [[NSAlert alloc] init];
+                      alert.messageText = @"Import Failed";
+                      alert.informativeText = error.localizedDescription ?: @"Unknown error";
+                      alert.alertStyle = NSAlertStyleWarning;
+                      [alert addButtonWithTitle:@"OK"];
+                      [alert runModal];
+                    } else {
+                      [self.tableView reloadData];
+                      if ([MSTConfigManager sharedManager].hostConfigs.count > 0) {
+                        [self.tableView selectRowIndexes:[NSIndexSet indexSetWithIndex:0]
+                                    byExtendingSelection:NO];
+                        NSNotification *selectionChangeNotification =
+                            [NSNotification
+                                notificationWithName:NSTableViewSelectionDidChangeNotification
+                                              object:self.tableView];
+                        [self tableViewSelectionDidChange:selectionChangeNotification];
+                      }
+                    }
+                  }
+                }];
 }
 
 #pragma mark - NSTableViewDataSource

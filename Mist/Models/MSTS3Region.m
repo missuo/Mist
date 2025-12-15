@@ -154,7 +154,8 @@
                                           displayName:@"Auto"] ];
 
   case MSTS3ProviderTypeBackblazeB2:
-    return @[];
+    return @[ [[MSTS3Region alloc] initWithIdentifier:@""
+                                          displayName:@""] ];
 
   case MSTS3ProviderTypeMinIO:
     return @[ [[MSTS3Region alloc] initWithIdentifier:@"us-east-1"

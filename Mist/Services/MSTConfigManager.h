@@ -42,6 +42,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)formatURL:(NSString *)url;
 
+// Import/Export
+- (BOOL)exportConfigsToURL:(NSURL *)url error:(NSError **)error;
+- (BOOL)importConfigsFromURL:(NSURL *)url error:(NSError **)error;
+
 @end
 
 NS_ASSUME_NONNULL_END

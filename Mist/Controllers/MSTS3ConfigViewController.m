@@ -10,6 +10,23 @@
 #import "MSTS3HostConfig.h"
 #import "MSTS3Region.h"
 #import "MSTS3Uploader.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+
+static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
+  if (!value) {
+    return @"";
+  }
+  NSCharacterSet *set = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+  NSArray<NSString *> *components =
+      [value componentsSeparatedByCharactersInSet:set];
+  NSMutableArray<NSString *> *filtered = [NSMutableArray array];
+  for (NSString *part in components) {
+    if (part.length > 0) {
+      [filtered addObject:part];
+    }
+  }
+  return [filtered componentsJoinedByString:@""];
+}
 
 @interface MSTS3ConfigViewController () <NSTextFieldDelegate>
 
@@ -715,12 +732,12 @@
     NSMenuItem *regionItem = self.regionPopup.selectedItem;
     NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
     self.config.region = regionValue;
-    self.config.endpoint = self.endpointField.stringValue;
+    self.config.endpoint = MSTStripWhitespaceAndNewlines(self.endpointField.stringValue);
     self.config.bucket = self.bucketField.stringValue;
-    self.config.accessKey = self.accessKeyField.stringValue;
-    self.config.secretKey = self.secretKeyField.stringValue;
+    self.config.accessKey = MSTStripWhitespaceAndNewlines(self.accessKeyField.stringValue);
+    self.config.secretKey = MSTStripWhitespaceAndNewlines(self.secretKeyField.stringValue);
     self.config.acl = self.aclPopup.selectedItem.representedObject;
-    self.config.domain = self.domainField.stringValue;
+    self.config.domain = MSTStripWhitespaceAndNewlines(self.domainField.stringValue);
     self.config.smmsToken = @"";
   }
 
@@ -752,12 +769,12 @@
     NSMenuItem *regionItem = self.regionPopup.selectedItem;
     NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
     testConfig.region = regionValue;
-    testConfig.endpoint = self.endpointField.stringValue;
+    testConfig.endpoint = MSTStripWhitespaceAndNewlines(self.endpointField.stringValue);
     testConfig.bucket = self.bucketField.stringValue;
-    testConfig.accessKey = self.accessKeyField.stringValue;
-    testConfig.secretKey = self.secretKeyField.stringValue;
+    testConfig.accessKey = MSTStripWhitespaceAndNewlines(self.accessKeyField.stringValue);
+    testConfig.secretKey = MSTStripWhitespaceAndNewlines(self.secretKeyField.stringValue);
     testConfig.acl = self.aclPopup.selectedItem.representedObject;
-    testConfig.domain = self.domainField.stringValue;
+    testConfig.domain = MSTStripWhitespaceAndNewlines(self.domainField.stringValue);
   }
 
   // Create a minimal 1x1 pixel red PNG image for validation
@@ -787,7 +804,9 @@
         dispatch_async(dispatch_get_main_queue(), ^{
           self.validateButton.enabled = YES;
           if (error) {
-            self.statusLabel.stringValue = @"Validation failed!";
+            NSString *errorMessage = error.localizedDescription ?: @"Unknown error";
+            self.statusLabel.stringValue =
+                [NSString stringWithFormat:@"Validation failed: %@", errorMessage];
             self.statusLabel.textColor = [NSColor systemRedColor];
           } else {
             self.statusLabel.stringValue = @"Validation successful!";

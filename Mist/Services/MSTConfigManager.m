@@ -523,15 +523,15 @@
   if (!self.iCloudSyncEnabled) {
     return;
   }
-  
+
   NSLog(@"[Config] Handling iCloud data change notification");
-  
+
   NSDictionary *userInfo = notification.userInfo;
   NSNumber *changeReason = userInfo[NSUbiquitousKeyValueStoreChangeReasonKey];
-  
+
   if (changeReason) {
     NSInteger reason = [changeReason integerValue];
-    
+
     if (reason == NSUbiquitousKeyValueStoreInitialSyncChange) {
       NSLog(@"[Config] Initial sync from iCloud");
     } else if (reason == NSUbiquitousKeyValueStoreServerChange) {
@@ -540,14 +540,157 @@
       NSLog(@"[Config] iCloud account changed");
     }
   }
-  
+
   // Always reload from iCloud - it's the source of truth
   [self loadFromiCloudIfAvailable];
-  
+
   // Post notification that config changed
   [[NSNotificationCenter defaultCenter]
       postNotificationName:MSTConfigDidChangeNotification
                     object:nil];
+}
+
+#pragma mark - Import/Export
+
+- (BOOL)exportConfigsToURL:(NSURL *)url error:(NSError **)error {
+  // Build export dictionary
+  NSMutableArray *configDicts = [NSMutableArray array];
+  for (MSTS3HostConfig *config in self.mutableHostConfigs) {
+    [configDicts addObject:[config toDictionary]];
+  }
+
+  NSDictionary *exportData = @{
+    @"version" : @1,
+    @"exportDate" : [[NSDate date] description],
+    @"hosts" : configDicts,
+    @"defaultHostId" : self.defaultHost.identifier ?: [NSNull null],
+    @"settings" : @{
+      @"outputFormat" : @(self.outputFormat),
+      @"compressFactor" : @(self.compressFactor),
+      @"removeEXIF" : @(self.removeEXIF),
+      @"shortLinkAPIKey" : self.shortLinkAPIKey ?: @"",
+      @"shortLinkDefaultDomain" : self.shortLinkDefaultDomain ?: @"s.ee",
+      @"shortLinkDomains" : self.shortLinkDomains ?: @[]
+    }
+  };
+
+  NSError *jsonError = nil;
+  NSData *jsonData = [NSJSONSerialization dataWithJSONObject:exportData
+                                                     options:NSJSONWritingPrettyPrinted
+                                                       error:&jsonError];
+  if (!jsonData) {
+    if (error) {
+      *error = jsonError ?: [NSError errorWithDomain:@"MSTConfigError"
+                                                code:-1
+                                            userInfo:@{NSLocalizedDescriptionKey : @"Failed to serialize config to JSON"}];
+    }
+    return NO;
+  }
+
+  NSError *writeError = nil;
+  BOOL success = [jsonData writeToURL:url options:NSDataWritingAtomic error:&writeError];
+  if (!success && error) {
+    *error = writeError;
+  }
+
+  NSLog(@"[Config] Exported %lu configs to %@", (unsigned long)configDicts.count, url.path);
+  return success;
+}
+
+- (BOOL)importConfigsFromURL:(NSURL *)url error:(NSError **)error {
+  NSError *readError = nil;
+  NSData *jsonData = [NSData dataWithContentsOfURL:url options:0 error:&readError];
+  if (!jsonData) {
+    if (error) {
+      *error = readError ?: [NSError errorWithDomain:@"MSTConfigError"
+                                                code:-2
+                                            userInfo:@{NSLocalizedDescriptionKey : @"Failed to read config file"}];
+    }
+    return NO;
+  }
+
+  NSError *jsonError = nil;
+  NSDictionary *importData = [NSJSONSerialization JSONObjectWithData:jsonData
+                                                             options:0
+                                                               error:&jsonError];
+  if (!importData || ![importData isKindOfClass:[NSDictionary class]]) {
+    if (error) {
+      *error = jsonError ?: [NSError errorWithDomain:@"MSTConfigError"
+                                                code:-3
+                                            userInfo:@{NSLocalizedDescriptionKey : @"Invalid JSON format"}];
+    }
+    return NO;
+  }
+
+  // Parse hosts
+  NSArray *hostDicts = importData[@"hosts"];
+  if (![hostDicts isKindOfClass:[NSArray class]]) {
+    if (error) {
+      *error = [NSError errorWithDomain:@"MSTConfigError"
+                                   code:-4
+                               userInfo:@{NSLocalizedDescriptionKey : @"Invalid config format: missing hosts array"}];
+    }
+    return NO;
+  }
+
+  // Clear existing configs and import new ones
+  [self.mutableHostConfigs removeAllObjects];
+
+  for (NSDictionary *dict in hostDicts) {
+    if ([dict isKindOfClass:[NSDictionary class]]) {
+      // Create new config with new identifier to avoid conflicts
+      NSMutableDictionary *mutableDict = [dict mutableCopy];
+      mutableDict[@"identifier"] = [[NSUUID UUID] UUIDString];
+      mutableDict[@"isDefault"] = @NO;
+
+      MSTS3HostConfig *config = [MSTS3HostConfig configFromDictionary:mutableDict];
+      if (config) {
+        [self.mutableHostConfigs addObject:config];
+      }
+    }
+  }
+
+  // Set default host
+  if (self.mutableHostConfigs.count > 0) {
+    self.mutableHostConfigs.firstObject.isDefault = YES;
+    self.defaultHost = self.mutableHostConfigs.firstObject;
+  } else {
+    self.defaultHost = nil;
+  }
+
+  // Import settings if present
+  NSDictionary *settings = importData[@"settings"];
+  if ([settings isKindOfClass:[NSDictionary class]]) {
+    if (settings[@"outputFormat"]) {
+      self.outputFormat = [settings[@"outputFormat"] integerValue];
+    }
+    if (settings[@"compressFactor"]) {
+      self.compressFactor = [settings[@"compressFactor"] integerValue];
+    }
+    if (settings[@"removeEXIF"]) {
+      self.removeEXIF = [settings[@"removeEXIF"] boolValue];
+    }
+    if ([settings[@"shortLinkAPIKey"] isKindOfClass:[NSString class]]) {
+      self.shortLinkAPIKey = settings[@"shortLinkAPIKey"];
+    }
+    if ([settings[@"shortLinkDefaultDomain"] isKindOfClass:[NSString class]] &&
+        [settings[@"shortLinkDefaultDomain"] length] > 0) {
+      self.shortLinkDefaultDomain = settings[@"shortLinkDefaultDomain"];
+    }
+    if ([settings[@"shortLinkDomains"] isKindOfClass:[NSArray class]]) {
+      self.shortLinkDomains = settings[@"shortLinkDomains"];
+    }
+  }
+
+  [self saveConfigs];
+
+  NSLog(@"[Config] Imported %lu configs from %@", (unsigned long)self.mutableHostConfigs.count, url.path);
+
+  [[NSNotificationCenter defaultCenter]
+      postNotificationName:MSTConfigDidChangeNotification
+                    object:nil];
+
+  return YES;
 }
 
 @end

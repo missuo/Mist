@@ -7,6 +7,22 @@
 
 #import "MSTS3HostConfig.h"
 
+static NSString *MSTSanitizeConfigString(NSString *value) {
+  if (!value) {
+    return @"";
+  }
+  NSCharacterSet *set = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+  NSArray<NSString *> *components =
+      [value componentsSeparatedByCharactersInSet:set];
+  NSMutableArray<NSString *> *filtered = [NSMutableArray array];
+  for (NSString *part in components) {
+    if (part.length > 0) {
+      [filtered addObject:part];
+    }
+  }
+  return [filtered componentsJoinedByString:@""];
+}
+
 @implementation MSTS3HostConfig
 
 + (BOOL)supportsSecureCoding {
@@ -47,17 +63,17 @@
     if (dict[@"region"])
       _region = dict[@"region"];
     if (dict[@"endpoint"])
-      _endpoint = dict[@"endpoint"];
+      _endpoint = MSTSanitizeConfigString(dict[@"endpoint"]);
     if (dict[@"bucket"])
       _bucket = dict[@"bucket"];
     if (dict[@"accessKey"])
-      _accessKey = dict[@"accessKey"];
+      _accessKey = MSTSanitizeConfigString(dict[@"accessKey"]);
     if (dict[@"secretKey"])
-      _secretKey = dict[@"secretKey"];
+      _secretKey = MSTSanitizeConfigString(dict[@"secretKey"]);
     if (dict[@"smmsToken"])
       _smmsToken = dict[@"smmsToken"];
     if (dict[@"domain"])
-      _domain = dict[@"domain"];
+      _domain = MSTSanitizeConfigString(dict[@"domain"]);
     if (dict[@"saveKeyPath"])
       _saveKeyPath = dict[@"saveKeyPath"];
     if (dict[@"acl"])
@@ -106,18 +122,19 @@
     }
     _region = [coder decodeObjectOfClass:[NSString class] forKey:@"region"]
                   ?: @"us-east-1";
-    _endpoint =
-        [coder decodeObjectOfClass:[NSString class] forKey:@"endpoint"] ?: @"";
+    _endpoint = MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
+                                                             forKey:@"endpoint"] ?: @"");
     _bucket =
         [coder decodeObjectOfClass:[NSString class] forKey:@"bucket"] ?: @"";
-    _accessKey =
-        [coder decodeObjectOfClass:[NSString class] forKey:@"accessKey"] ?: @"";
-    _secretKey =
-        [coder decodeObjectOfClass:[NSString class] forKey:@"secretKey"] ?: @"";
+    _accessKey = MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
+                                                              forKey:@"accessKey"] ?: @"");
+    _secretKey = MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
+                                                              forKey:@"secretKey"] ?: @"");
     _smmsToken =
         [coder decodeObjectOfClass:[NSString class] forKey:@"smmsToken"] ?: @"";
     _domain =
-        [coder decodeObjectOfClass:[NSString class] forKey:@"domain"] ?: @"";
+        MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
+                                                    forKey:@"domain"] ?: @"");
     _saveKeyPath = [coder decodeObjectOfClass:[NSString class]
                                        forKey:@"saveKeyPath"]
                        ?: @"";
