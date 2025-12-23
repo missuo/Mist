@@ -46,13 +46,14 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 @property(nonatomic, strong) NSTextField *accessKeyLabel;
 @property(nonatomic, strong) NSTextField *secretKeyLabel;
 @property(nonatomic, strong) NSTextField *aclLabel;
-@property(nonatomic, strong) NSTextField *domainLabel;
+@property(nonatomic, strong) NSTextField *urlPrefixLabel;
 @property(nonatomic, strong) NSTextField *savePathLabel;
+@property(nonatomic, strong) NSButton *useHTTPSCheckbox;
 @property(nonatomic, strong) NSTextField *pathHintLabel;
 @property(nonatomic, strong) NSButton *showAccessKeyButton;
 @property(nonatomic, strong) NSButton *showSecretKeyButton;
 @property(nonatomic, strong) NSPopUpButton *aclPopup;
-@property(nonatomic, strong) NSTextField *domainField;
+@property(nonatomic, strong) NSTextField *urlPrefixField;
 @property(nonatomic, strong) NSTextField *saveKeyPathField;
 
 @property(nonatomic, strong) NSTextField *regionLabel;
@@ -139,9 +140,9 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.scrollView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
   self.scrollView.hidden = YES;
 
-  self.contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 450, 460)];
+  self.contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 450, 530)];
 
-  CGFloat y = 430;
+  CGFloat y = 500;
   CGFloat fieldX = 120;
   CGFloat fieldWidth = 300;
   CGFloat row = 30;  // uniform row spacing
@@ -269,12 +270,20 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   [self.contentView addSubview:self.aclPopup];
   y -= row;
 
-  // Custom Domain
-  self.domainLabel = [self addLabel:@"Domain:" atY:y];
-  self.domainField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
-  self.domainField.placeholderString = @"cdn.example.com (optional)";
-  self.domainField.delegate = self;
-  [self.contentView addSubview:self.domainField];
+  // URL Prefix
+  self.urlPrefixLabel = [self addLabel:@"URL Prefix:" atY:y];
+  self.urlPrefixField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
+  self.urlPrefixField.placeholderString = @"cdn.example.com (optional)";
+  self.urlPrefixField.delegate = self;
+  [self.contentView addSubview:self.urlPrefixField];
+  y -= row;
+
+  // Use HTTPS
+  self.useHTTPSCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 18)];
+  self.useHTTPSCheckbox.title = @"Use HTTPS";
+  [self.useHTTPSCheckbox setButtonType:NSButtonTypeSwitch];
+  self.useHTTPSCheckbox.state = NSControlStateValueOn;
+  [self.contentView addSubview:self.useHTTPSCheckbox];
   y -= row;
 
   // Short links
@@ -435,9 +444,10 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.accessKeyField.stringValue = self.config.accessKey ?: @"";
   self.secretKeyField.stringValue = self.config.secretKey ?: @"";
   self.tokenField.stringValue = self.config.smmsToken ?: @"";
-  self.domainField.stringValue = self.config.domain ?: @"";
+  self.urlPrefixField.stringValue = self.config.urlPrefix ?: @"";
   self.saveKeyPathField.stringValue =
       self.config.saveKeyPath ?: @"{year}/{month}/{day}/{filename}.{ext}";
+  self.useHTTPSCheckbox.state = self.config.useHTTPS ? NSControlStateValueOn : NSControlStateValueOff;
 
   self.shortLinkCheckbox.state = self.config.shortLinkEnabled ? NSControlStateValueOn : NSControlStateValueOff;
   [self updateShortLinkNote];
@@ -592,8 +602,9 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
                                           self.showSecretKeyButton ?: [[NSView alloc] init],
                                           self.aclLabel ?: [[NSView alloc] init],
                                           self.aclPopup ?: [[NSView alloc] init],
-                                          self.domainLabel ?: [[NSView alloc] init],
-                                          self.domainField ?: [[NSView alloc] init],
+                                          self.urlPrefixLabel ?: [[NSView alloc] init],
+                                          self.urlPrefixField ?: [[NSView alloc] init],
+                                          self.useHTTPSCheckbox ?: [[NSView alloc] init],
                                           self.savePathLabel ?: [[NSView alloc] init],
                                           self.saveKeyPathField ?: [[NSView alloc] init],
                                           self.pathHintLabel ?: [[NSView alloc] init] ];
@@ -606,7 +617,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   }
 
   CGFloat rowHeight = 30.0;
-  CGFloat collapseOffset = rowHeight * 6; // endpoint, bucket, access, secret, ACL, domain
+  CGFloat collapseOffset = rowHeight * 7; // endpoint, bucket, access, secret, ACL, urlPrefix, useHTTPS
 
   if (isSMMS) {
     // Move token up to the Region row position
@@ -737,7 +748,8 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     self.config.accessKey = MSTStripWhitespaceAndNewlines(self.accessKeyField.stringValue);
     self.config.secretKey = MSTStripWhitespaceAndNewlines(self.secretKeyField.stringValue);
     self.config.acl = self.aclPopup.selectedItem.representedObject;
-    self.config.domain = MSTStripWhitespaceAndNewlines(self.domainField.stringValue);
+    self.config.urlPrefix = MSTStripWhitespaceAndNewlines(self.urlPrefixField.stringValue);
+    self.config.useHTTPS = (self.useHTTPSCheckbox.state == NSControlStateValueOn);
     self.config.smmsToken = @"";
   }
 
@@ -774,7 +786,8 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     testConfig.accessKey = MSTStripWhitespaceAndNewlines(self.accessKeyField.stringValue);
     testConfig.secretKey = MSTStripWhitespaceAndNewlines(self.secretKeyField.stringValue);
     testConfig.acl = self.aclPopup.selectedItem.representedObject;
-    testConfig.domain = MSTStripWhitespaceAndNewlines(self.domainField.stringValue);
+    testConfig.urlPrefix = MSTStripWhitespaceAndNewlines(self.urlPrefixField.stringValue);
+    testConfig.useHTTPS = (self.useHTTPSCheckbox.state == NSControlStateValueOn);
   }
 
   // Create a minimal 1x1 pixel red PNG image for validation

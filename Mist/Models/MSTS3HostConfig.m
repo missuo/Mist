@@ -45,9 +45,10 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
     _accessKey = @"";
     _secretKey = @"";
     _smmsToken = @"";
-    _domain = @"";
+    _urlPrefix = @"";
     _saveKeyPath = @"{filename}.{ext}";
     _acl = @"public-read";
+    _useHTTPS = YES;
     _shortLinkEnabled = NO;
     _isDefault = NO;
   }
@@ -72,12 +73,17 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
       _secretKey = MSTSanitizeConfigString(dict[@"secretKey"]);
     if (dict[@"smmsToken"])
       _smmsToken = dict[@"smmsToken"];
-    if (dict[@"domain"])
-      _domain = MSTSanitizeConfigString(dict[@"domain"]);
+    // Support both new urlPrefix and legacy domain key
+    if (dict[@"urlPrefix"])
+      _urlPrefix = MSTSanitizeConfigString(dict[@"urlPrefix"]);
+    else if (dict[@"domain"])
+      _urlPrefix = MSTSanitizeConfigString(dict[@"domain"]);
     if (dict[@"saveKeyPath"])
       _saveKeyPath = dict[@"saveKeyPath"];
     if (dict[@"acl"])
       _acl = dict[@"acl"];
+    if (dict[@"useHTTPS"] != nil)
+      _useHTTPS = [dict[@"useHTTPS"] boolValue];
     if (dict[@"shortLinkEnabled"])
       _shortLinkEnabled = [dict[@"shortLinkEnabled"] boolValue];
     if (dict[@"providerType"])
@@ -102,9 +108,10 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
   [coder encodeObject:_accessKey forKey:@"accessKey"];
   [coder encodeObject:_secretKey forKey:@"secretKey"];
   [coder encodeObject:_smmsToken forKey:@"smmsToken"];
-  [coder encodeObject:_domain forKey:@"domain"];
+  [coder encodeObject:_urlPrefix forKey:@"urlPrefix"];
   [coder encodeObject:_saveKeyPath forKey:@"saveKeyPath"];
   [coder encodeObject:_acl forKey:@"acl"];
+  [coder encodeBool:_useHTTPS forKey:@"useHTTPS"];
   [coder encodeBool:_shortLinkEnabled forKey:@"shortLinkEnabled"];
   [coder encodeBool:_isDefault forKey:@"isDefault"];
 }
@@ -132,14 +139,19 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
                                                               forKey:@"secretKey"] ?: @"");
     _smmsToken =
         [coder decodeObjectOfClass:[NSString class] forKey:@"smmsToken"] ?: @"";
-    _domain =
-        MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
-                                                    forKey:@"domain"] ?: @"");
+    // Support both new urlPrefix and legacy domain key
+    NSString *urlPrefixValue = [coder decodeObjectOfClass:[NSString class] forKey:@"urlPrefix"];
+    if (!urlPrefixValue) {
+      urlPrefixValue = [coder decodeObjectOfClass:[NSString class] forKey:@"domain"];
+    }
+    _urlPrefix = MSTSanitizeConfigString(urlPrefixValue ?: @"");
     _saveKeyPath = [coder decodeObjectOfClass:[NSString class]
                                        forKey:@"saveKeyPath"]
                        ?: @"";
     _acl = [coder decodeObjectOfClass:[NSString class] forKey:@"acl"]
                ?: @"public-read";
+    // Default to YES for new configs and existing configs without this key
+    _useHTTPS = [coder containsValueForKey:@"useHTTPS"] ? [coder decodeBoolForKey:@"useHTTPS"] : YES;
     _shortLinkEnabled = [coder decodeBoolForKey:@"shortLinkEnabled"];
     _isDefault = [coder decodeBoolForKey:@"isDefault"];
   }
@@ -159,9 +171,10 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
     @"accessKey" : self.accessKey ?: @"",
     @"secretKey" : self.secretKey ?: @"",
     @"smmsToken" : self.smmsToken ?: @"",
-    @"domain" : self.domain ?: @"",
+    @"urlPrefix" : self.urlPrefix ?: @"",
     @"saveKeyPath" : self.saveKeyPath ?: @"",
     @"acl" : self.acl ?: @"",
+    @"useHTTPS" : @(self.useHTTPS),
     @"shortLinkEnabled" : @(self.shortLinkEnabled),
     @"isDefault" : @(self.isDefault)
   };
@@ -189,9 +202,10 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
   copy.accessKey = [self.accessKey copy];
   copy.secretKey = [self.secretKey copy];
   copy.smmsToken = [self.smmsToken copy];
-  copy.domain = [self.domain copy];
+  copy.urlPrefix = [self.urlPrefix copy];
   copy.saveKeyPath = [self.saveKeyPath copy];
   copy.acl = [self.acl copy];
+  copy.useHTTPS = self.useHTTPS;
   copy.shortLinkEnabled = self.shortLinkEnabled;
   copy.isDefault = NO;
   return copy;
@@ -200,33 +214,31 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
 #pragma mark - URL Computation
 
 - (NSString *)baseURL {
-  // If custom domain is set, use it
-  if (self.domain.length > 0) {
-    NSString *d = self.domain;
-    if (![d hasPrefix:@"http"]) {
-      d = [NSString stringWithFormat:@"https://%@", d];
+  NSString *scheme = self.useHTTPS ? @"https" : @"http";
+
+  // If URL prefix is set, use it as the base
+  if (self.urlPrefix.length > 0) {
+    NSString *prefix = self.urlPrefix;
+    // Remove existing scheme if present
+    if ([prefix hasPrefix:@"https://"]) {
+      prefix = [prefix substringFromIndex:8];
+    } else if ([prefix hasPrefix:@"http://"]) {
+      prefix = [prefix substringFromIndex:7];
     }
-    if ([d hasSuffix:@"/"]) {
-      d = [d substringToIndex:d.length - 1];
+    if ([prefix hasSuffix:@"/"]) {
+      prefix = [prefix substringToIndex:prefix.length - 1];
     }
-    return d;
+    return [NSString stringWithFormat:@"%@://%@", scheme, prefix];
   }
 
-  // If using custom endpoint
-  if (self.isCustomEndpoint && self.endpoint.length > 0) {
-    NSString *e = self.endpoint;
-    if (![e hasPrefix:@"http"]) {
-      e = [NSString stringWithFormat:@"https://%@", e];
-    }
-    if ([e hasSuffix:@"/"]) {
-      e = [e substringToIndex:e.length - 1];
-    }
-    return [NSString stringWithFormat:@"%@/%@", e, self.bucket];
-  }
+  // If URL prefix is empty, return empty string to indicate
+  // that saveKeyPath contains the full domain+path
+  // (e.g., saveKeyPath = "cdn.example.com/{filename}.{ext}")
+  return @"";
+}
 
-  // AWS S3 URL format
-  return [NSString stringWithFormat:@"https://%@.s3.%@.amazonaws.com",
-                                    self.bucket, self.region];
+- (NSString *)scheme {
+  return self.useHTTPS ? @"https" : @"http";
 }
 
 - (NSString *)computedEndpoint {

@@ -21,9 +21,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, copy) NSString *accessKey;
 @property(nonatomic, copy) NSString *secretKey;
 @property(nonatomic, copy) NSString *smmsToken;
-@property(nonatomic, copy) NSString *domain;
+@property(nonatomic, copy) NSString *urlPrefix;
 @property(nonatomic, copy) NSString *saveKeyPath;
 @property(nonatomic, copy) NSString *acl;
+@property(nonatomic, assign) BOOL useHTTPS;
 @property(nonatomic, assign) BOOL shortLinkEnabled;
 @property(nonatomic, assign) BOOL isDefault;
 
@@ -36,6 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)isCustomEndpoint;
 - (NSString *)baseURL;
+- (NSString *)scheme;
 - (NSString *)computedEndpoint;
 
 - (instancetype)copyWithNewIdentifier;

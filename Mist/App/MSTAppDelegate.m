@@ -12,6 +12,7 @@
 #import "MSTS3HostConfig.h"
 #import "MSTS3Uploader.h"
 #import "MSTShortLinkService.h"
+#import "MSTUploadHistoryManager.h"
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <UserNotifications/UserNotifications.h>
 
@@ -25,7 +26,6 @@
 @property(nonatomic, strong) NSMenuItem *uploadMenuItem;
 @property(nonatomic, strong) NSMenuItem *hostsMenuItem;
 @property(nonatomic, strong) NSMenuItem *formatMenuItem;
-@property(nonatomic, strong) NSMenuItem *fullDiskAccessMenuItem;
 @property(nonatomic, strong) NSMenuItem *statusInfoMenuItem;
 
 // Batch upload tracking
@@ -210,7 +210,13 @@ static MSTAppDelegate *_shared = nil;
                  forHost:(MSTS3HostConfig *)host
               completion:(void (^)(NSString *finalURL))completion {
   MSTConfigManager *manager = [MSTConfigManager sharedManager];
+
+  NSLog(@"[Mist] maybeShortenURL called: shortLinkEnabled=%d, apiKeyLength=%lu, url=%@",
+        host.shortLinkEnabled, (unsigned long)manager.shortLinkAPIKey.length, url);
+
   if (!host.shortLinkEnabled || manager.shortLinkAPIKey.length == 0) {
+    NSLog(@"[Mist] Short link skipped: enabled=%d, hasAPIKey=%d",
+          host.shortLinkEnabled, manager.shortLinkAPIKey.length > 0);
     if (completion) {
       completion(url);
     }
@@ -221,6 +227,8 @@ static MSTAppDelegate *_shared = nil;
                          ? manager.shortLinkDefaultDomain
                          : @"s.ee";
 
+  NSLog(@"[Mist] Creating short link with domain=%@", domain);
+
   [self.shortLinkService createShortURLForURL:url
                                         domain:domain
                                          apiKey:manager.shortLinkAPIKey
@@ -229,6 +237,8 @@ static MSTAppDelegate *_shared = nil;
                                        if (error) {
                                          NSLog(@"[Mist] Short link failed: %@",
                                                error.localizedDescription);
+                                       } else {
+                                         NSLog(@"[Mist] Short link created: %@", shortURL);
                                        }
                                        if (completion) {
                                          completion(shortURL ?: url);
@@ -361,14 +371,6 @@ static MSTAppDelegate *_shared = nil;
 - (void)setupMenu {
   self.statusMenu = [[NSMenu alloc] init];
   self.statusMenu.delegate = self;
-
-  // Full Disk Access status
-  self.fullDiskAccessMenuItem =
-      [[NSMenuItem alloc] initWithTitle:@"Checking Full Disk Access..."
-                                 action:nil
-                          keyEquivalent:@""]; 
-  [self.statusMenu addItem:self.fullDiskAccessMenuItem];
-  [self updateFullDiskAccessMenuItem];
 
   // Upload status info
   self.statusInfoMenuItem = [[NSMenuItem alloc] initWithTitle:@"Ready"
@@ -599,9 +601,28 @@ static MSTAppDelegate *_shared = nil;
     icon.template = YES;
     self.statusItem.button.image = icon;
 
-    // Only handle single file uploads here (not batch uploads)
+    NSString *url = notification.userInfo[@"url"];
+    NSString *filename = notification.userInfo[@"filename"];
+    NSNumber *fileSize = notification.userInfo[@"fileSize"];
+    MSTS3HostConfig *hostConfig = notification.userInfo[@"config"];
+    NSData *originalData = notification.userInfo[@"data"];
+
+    // Save to history for all uploads
+    if (url && hostConfig) {
+      // Generate thumbnail for images
+      NSData *thumbnailData = [self generateThumbnailFromData:originalData filename:filename];
+
+      [[MSTUploadHistoryManager sharedManager] addHistoryItemWithFilename:filename ?: @"Unknown"
+                                                                      url:url
+                                                                 shortURL:nil
+                                                               hostConfig:hostConfig
+                                                                 fileSize:fileSize.unsignedIntegerValue
+                                                                 mimeType:nil
+                                                            thumbnailData:thumbnailData];
+    }
+
+    // Only handle single file uploads UI here (not batch uploads)
     if (self.batchUploadURLs == nil) {
-      NSString *url = notification.userInfo[@"url"];
       if (url) {
         NSString *formattedURL = [[MSTConfigManager sharedManager] formatURL:url];
         [self copyToClipboard:formattedURL];
@@ -609,8 +630,8 @@ static MSTAppDelegate *_shared = nil;
         self.statusInfoMenuItem.title = @"Upload successful";
       }
     } else {
-      self.statusInfoMenuItem.title = [NSString stringWithFormat:@"Uploading %ld/%ld files", 
-                                       (long)self.batchUploadCompleted, 
+      self.statusInfoMenuItem.title = [NSString stringWithFormat:@"Uploading %ld/%ld files",
+                                       (long)self.batchUploadCompleted,
                                        (long)self.batchUploadTotal];
     }
   });
@@ -773,65 +794,52 @@ static MSTAppDelegate *_shared = nil;
       }];
 }
 
-#pragma mark - Full Disk Access
-
-- (BOOL)hasFullDiskAccess {
-  NSError *error = nil;
-  NSString *tccPath = @"/Library/Application Support/com.apple.TCC/TCC.db";
-  [NSData dataWithContentsOfFile:tccPath
-                         options:NSDataReadingMappedIfSafe
-                           error:&error];
-  if (!error) {
-    return YES;
-  }
-
-  if (error.code == NSFileReadNoPermissionError) {
-    return NO;
-  }
-
-  error = nil;
-  NSString *mailPath =
-      [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Mail"];
-  [[NSFileManager defaultManager] contentsOfDirectoryAtPath:mailPath
-                                                       error:&error];
-
-  if (!error) {
-    return YES;
-  }
-
-  if (error.code == NSFileReadNoPermissionError) {
-    return NO;
-  }
-
-  return NO;
-}
-
-- (void)updateFullDiskAccessMenuItem {
-  BOOL granted = [self hasFullDiskAccess];
-  if (!self.fullDiskAccessMenuItem) {
-    return;
-  }
-
-  if (granted) {
-    self.fullDiskAccessMenuItem.title = @"Full Disk Access: Granted";
-    self.fullDiskAccessMenuItem.action = nil;
-    self.fullDiskAccessMenuItem.target = nil;
-    self.fullDiskAccessMenuItem.enabled = NO;
-  } else {
-    self.fullDiskAccessMenuItem.title = @"Grant Full Disk Access...";
-    self.fullDiskAccessMenuItem.action = @selector(openFullDiskAccessPreferences);
-    self.fullDiskAccessMenuItem.target = self;
-    self.fullDiskAccessMenuItem.enabled = YES;
-  }
-}
-
-- (void)openFullDiskAccessPreferences {
-  NSURL *url = [NSURL
-      URLWithString:@"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"];
-  [[NSWorkspace sharedWorkspace] openURL:url];
-}
-
 #pragma mark - Utilities
+
+- (nullable NSData *)generateThumbnailFromData:(NSData *)data filename:(NSString *)filename {
+  if (!data || data.length == 0) {
+    return nil;
+  }
+
+  // Check if it's an image file
+  NSString *ext = filename.pathExtension.lowercaseString;
+  NSSet *imageExtensions = [NSSet setWithObjects:@"png", @"jpg", @"jpeg", @"gif", @"bmp", @"tiff", @"webp", @"heic", nil];
+  if (![imageExtensions containsObject:ext]) {
+    return nil;
+  }
+
+  NSImage *image = [[NSImage alloc] initWithData:data];
+  if (!image) {
+    return nil;
+  }
+
+  // Generate thumbnail (max 64x64)
+  CGFloat maxSize = 64.0;
+  NSSize originalSize = image.size;
+  if (originalSize.width == 0 || originalSize.height == 0) {
+    return nil;
+  }
+
+  CGFloat scale = MIN(maxSize / originalSize.width, maxSize / originalSize.height);
+  if (scale >= 1.0) {
+    scale = 1.0; // Don't upscale
+  }
+
+  NSSize thumbnailSize = NSMakeSize(originalSize.width * scale, originalSize.height * scale);
+
+  NSImage *thumbnail = [[NSImage alloc] initWithSize:thumbnailSize];
+  [thumbnail lockFocus];
+  [[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationHigh];
+  [image drawInRect:NSMakeRect(0, 0, thumbnailSize.width, thumbnailSize.height)
+           fromRect:NSZeroRect
+          operation:NSCompositingOperationSourceOver
+           fraction:1.0];
+  [thumbnail unlockFocus];
+
+  // Convert to PNG data
+  NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithData:[thumbnail TIFFRepresentation]];
+  return [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
+}
 
 - (void)copyToClipboard:(NSString *)string {
   NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
@@ -881,10 +889,6 @@ static MSTAppDelegate *_shared = nil;
 #pragma mark - NSMenuDelegate
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
-  if (menu == self.statusMenu) {
-    [self updateFullDiskAccessMenuItem];
-  }
-
   if (menu == self.formatMenuItem.submenu) {
     MSTOutputFormat currentFormat =
         [MSTConfigManager sharedManager].outputFormat;

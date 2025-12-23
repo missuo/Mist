@@ -88,6 +88,9 @@ static NSString * const kMSTShortLinkBaseURL = @"https://s.ee/api/v1";
                         apiKey:(NSString *)apiKey
                     completion:(void (^)(NSString * _Nullable shortURL,
                                          NSError * _Nullable error))completion {
+  NSLog(@"[ShortLink] createShortURL called: domain=%@, targetURL=%@, apiKeyLength=%lu",
+        domain, targetURL, (unsigned long)apiKey.length);
+
   NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"%@/shorten", kMSTShortLinkBaseURL]];
   NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
   request.HTTPMethod = @"POST";
@@ -108,12 +111,18 @@ static NSString * const kMSTShortLinkBaseURL = @"https://s.ee/api/v1";
   NSURLSessionDataTask *task = [[NSURLSession sharedSession]
       dataTaskWithRequest:request
         completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+          NSHTTPURLResponse *http = (NSHTTPURLResponse *)response;
+          NSString *bodyString = data ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : @"<no body>";
+          NSLog(@"[ShortLink] POST /shorten status=%ld error=%@ body=%@",
+                (long)(http ? http.statusCode : -1),
+                error.localizedDescription ?: @"<none>",
+                bodyString ?: @"<decode failed>");
+
           if (error) {
             [self dispatchShortenCompletion:completion url:nil error:error];
             return;
           }
 
-          NSHTTPURLResponse *http = (NSHTTPURLResponse *)response;
           if (http.statusCode < 200 || http.statusCode >= 300) {
             NSError *statusError = [NSError errorWithDomain:@"MSTShortLinkError"
                                                        code:http.statusCode

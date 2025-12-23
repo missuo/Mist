@@ -77,10 +77,16 @@
           }
 
           if (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300) {
-            NSLog(@"[Mist] S3 upload success - Domain: '%@', BaseURL: '%@'",
-                  config.domain, config.baseURL);
-            NSString *url =
-                [NSString stringWithFormat:@"%@/%@", config.baseURL, saveKey];
+            NSLog(@"[Mist] S3 upload success - URLPrefix: '%@', BaseURL: '%@'",
+                  config.urlPrefix, config.baseURL);
+            NSString *url;
+            if (config.baseURL.length > 0) {
+              // URL prefix is set, use baseURL + "/" + saveKey
+              url = [NSString stringWithFormat:@"%@/%@", config.baseURL, saveKey];
+            } else {
+              // URL prefix is empty, saveKey contains the full domain+path
+              url = [NSString stringWithFormat:@"%@://%@", config.scheme, saveKey];
+            }
             completion(url, nil);
           } else {
             NSString *responseBody = [[NSString alloc] initWithData:responseData

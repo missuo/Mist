@@ -8,6 +8,7 @@
 #import "MSTPreferencesWindowController.h"
 #import "MSTHostsViewController.h"
 #import "MSTGeneralViewController.h"
+#import "MSTHistoryViewController.h"
 #import "MSTAboutViewController.h"
 
 @interface MSTPreferencesWindowController () <NSToolbarDelegate>
@@ -15,6 +16,7 @@
 @property (nonatomic, strong) NSToolbar *toolbar;
 @property (nonatomic, strong) MSTHostsViewController *hostsVC;
 @property (nonatomic, strong) MSTGeneralViewController *generalVC;
+@property (nonatomic, strong) MSTHistoryViewController *historyVC;
 @property (nonatomic, strong) MSTAboutViewController *aboutVC;
 @property (nonatomic, copy) NSString *currentIdentifier;
 
@@ -66,6 +68,7 @@ static MSTPreferencesWindowController *_sharedController = nil;
 - (void)setupViewControllers {
     self.hostsVC = [[MSTHostsViewController alloc] init];
     self.generalVC = [[MSTGeneralViewController alloc] init];
+    self.historyVC = [[MSTHistoryViewController alloc] init];
     self.aboutVC = [[MSTAboutViewController alloc] init];
 }
 
@@ -77,15 +80,15 @@ static MSTPreferencesWindowController *_sharedController = nil;
 #pragma mark - Toolbar Delegate
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {
-    return @[@"hosts", @"general", @"about"];
+    return @[@"hosts", @"general", @"history", @"about"];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
-    return @[@"hosts", @"general", @"about"];
+    return @[@"hosts", @"general", @"history", @"about"];
 }
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarSelectableItemIdentifiers:(NSToolbar *)toolbar {
-    return @[@"hosts", @"general", @"about"];
+    return @[@"hosts", @"general", @"history", @"about"];
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)toolbar
@@ -104,6 +107,10 @@ static MSTPreferencesWindowController *_sharedController = nil;
         item.label = @"General";
         item.image = [NSImage imageWithSystemSymbolName:@"gear"
                                accessibilityDescription:@"General"];
+    } else if ([itemIdentifier isEqualToString:@"history"]) {
+        item.label = @"History";
+        item.image = [NSImage imageWithSystemSymbolName:@"clock.arrow.circlepath"
+                               accessibilityDescription:@"History"];
     } else if ([itemIdentifier isEqualToString:@"about"]) {
         item.label = @"About";
         item.image = [NSImage imageWithSystemSymbolName:@"info.circle"
@@ -128,6 +135,8 @@ static MSTPreferencesWindowController *_sharedController = nil;
         vc = self.hostsVC;
     } else if ([identifier isEqualToString:@"general"]) {
         vc = self.generalVC;
+    } else if ([identifier isEqualToString:@"history"]) {
+        vc = self.historyVC;
     } else if ([identifier isEqualToString:@"about"]) {
         vc = self.aboutVC;
     }

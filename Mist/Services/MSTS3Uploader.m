@@ -235,7 +235,13 @@
                 [[NSNotificationCenter defaultCenter]
                     postNotificationName:MSTUploadDidFinishNotification
                                   object:nil
-                                userInfo:@{@"url" : url}];
+                                userInfo:@{
+                                  @"url" : url,
+                                  @"filename" : item.filename ?: @"",
+                                  @"fileSize" : @(item.data.length),
+                                  @"config" : item.config,
+                                  @"data" : item.data ?: [NSData data]
+                                }];
                 dispatch_async(dispatch_get_main_queue(), ^{
                   item.completionBlock(url, nil);
                 });
