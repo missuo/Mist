@@ -3,6 +3,10 @@
 <div align="center">
   <img src="./AppIcon.png" alt="Mist Icon" width="128" height="128">
   <p><strong>A native macOS menu bar uploader for S3-compatible storage and SM.MS image hosting</strong></p>
+
+  <p>
+    <b>English</b> | <a href="README_CN.md">简体中文</a>
+  </p>
 </div>
 
 ## Overview
@@ -30,9 +34,10 @@ Mist is a lightweight, native macOS menu bar application that simplifies uploadi
 ### Advanced Features
 - **☁️ iCloud Sync**: Synchronize configurations across all your Apple devices
 - **🎨 Image Processing**: 
-  - On-the-fly image compression
+  - On-the-fly image compression with adjustable quality
   - EXIF metadata removal for privacy
-  - Format conversion (JPEG, PNG, HEIC, WebP)
+  - Modern format support: **AVIF (macOS 13+)**, **WebP (macOS 11+)**, **HEIC (macOS 10.13+)**, JPEG, and PNG
+  - Intelligent format fallback for older macOS versions
 - **⚙️ Multi-Host Management**: 
   - Manage multiple host configurations
   - Quick switch between different hosts
@@ -95,7 +100,7 @@ Download the latest version from the [Releases](https://github.com/missuo/Mist/r
 ### General Settings
 
 - **Output Format**: Choose image format (JPEG, PNG, WebP, or keep original)
-- **Compression Factor**: Adjust JPEG/WebP compression quality (0.0-1.0)
+- **Compression Factor**: Adjust compression quality (0-90). Supports **AVIF**, **WebP**, **HEIC**, and **JPEG**.
 - **Remove EXIF**: Strip metadata from images for privacy
 - **iCloud Sync**: Enable to sync configurations across devices
 
@@ -260,6 +265,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built with native macOS frameworks
 - Inspired by the need for simple, efficient file sharing workflows
 - Thanks to all contributors and users
+
+## Contributors
+
+<a href="https://github.com/missuo/mist/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=missuo/mist" alt="Contributors" />
+</a>
 
 ## Support
 

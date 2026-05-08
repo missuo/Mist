@@ -58,3 +58,8 @@ Temporary Items
 
 # Temporary icon file (untracked)
 Mist/Resources/AppIcon.png
+
+# AI Agents
+GEMINI.md
+.gemini/
+MEMORY.md
