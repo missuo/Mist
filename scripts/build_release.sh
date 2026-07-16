@@ -14,10 +14,10 @@ xcodebuild clean build \
     -derivedDataPath build
 
 echo "✅ Build complete!"
-echo "📦 App location: build/Release/Mist.app"
+echo "📦 App location: build/Build/Products/Release/Mist.app"
 echo ""
 echo "To test locally:"
-echo "  open build/Release/Mist.app"
+echo "  open build/Build/Products/Release/Mist.app"
 echo ""
 echo "To sign and notarize for distribution:"
 echo "  ./scripts/sign_and_notarize.sh"

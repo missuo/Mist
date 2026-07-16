@@ -5,7 +5,6 @@
   <p><strong>A native macOS menu bar uploader for S3-compatible storage and S.EE image hosting</strong></p>
 
   <p>
-    <b>English</b> | <a href="README_CN.md">简体中文</a>
   </p>
 </div>
 
@@ -75,7 +74,7 @@ Finder integration:
 ./scripts/install-service.sh
 ```
 
-Then enable **Upload to Mist** in System Settings -> Keyboard -> Keyboard Shortcuts -> Services. See [SERVICES.md](SERVICES.md) for details.
+Then enable **Upload to Mist** in System Settings -> Keyboard -> Keyboard Shortcuts -> Services. See [docs/services.md](docs/services.md) for details.
 
 URL scheme:
 
@@ -96,7 +95,14 @@ Mist is built with native macOS frameworks, including Cocoa, Foundation, CloudKi
 
 ## Troubleshooting
 
-See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+See [docs/troubleshooting.md](docs/troubleshooting.md).
+
+## Documentation
+
+- [Signing, Notarization, and Releases](docs/signing.md)
+- [Finder Services Integration](docs/services.md) ([quick start](docs/services-quick-start.md))
+- [iCloud Sync](docs/icloud-sync.md)
+- [Build and Release Scripts](scripts/README.md)
 
 ## License
 

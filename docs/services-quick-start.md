@@ -51,6 +51,5 @@ killall Finder
 
 ## Help
 
-- Setup: [SERVICES.md](SERVICES.md)
-- Troubleshooting: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- Technical: [SERVICES_FIXES.md](SERVICES_FIXES.md)
+- Setup: [services.md](services.md)
+- Troubleshooting: [troubleshooting.md](troubleshooting.md)
