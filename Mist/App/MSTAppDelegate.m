@@ -12,6 +12,7 @@
 #import "MSTS3HostConfig.h"
 #import "MSTS3Uploader.h"
 #import "MSTUploadHistoryManager.h"
+#import <FinderSync/FinderSync.h>
 #import <Sparkle/Sparkle.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <UserNotifications/UserNotifications.h>
@@ -28,6 +29,7 @@
 @property(nonatomic, strong) NSMenuItem *hostsMenuItem;
 @property(nonatomic, strong) NSMenuItem *formatMenuItem;
 @property(nonatomic, strong) NSMenuItem *statusInfoMenuItem;
+@property(nonatomic, strong) NSMenuItem *finderExtensionMenuItem;
 
 // Batch upload tracking
 @property(nonatomic, strong, nullable) NSMutableArray<NSString *> *batchUploadURLs;
@@ -70,6 +72,13 @@ static MSTAppDelegate *_shared = nil;
         forEventClass:kInternetEventClass
            andEventID:kAEGetURL];
   NSLog(@"[Mist] URL event handler registered");
+
+  // Give the extension a moment to register with PlugInKit on first
+  // launch before checking whether it is enabled.
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)),
+                 dispatch_get_main_queue(), ^{
+                   [self promptToEnableFinderExtensionIfNeeded];
+                 });
 }
 
 #pragma mark - URL Scheme Handler
@@ -422,6 +431,15 @@ static MSTAppDelegate *_shared = nil;
                           keyEquivalent:@","];
   prefsItem.target = self;
   [self.statusMenu addItem:prefsItem];
+
+  // Shown only while the Finder extension is disabled
+  self.finderExtensionMenuItem =
+      [[NSMenuItem alloc] initWithTitle:@"Enable Finder Extension..."
+                                 action:@selector(openFinderExtensionSettings)
+                          keyEquivalent:@""];
+  self.finderExtensionMenuItem.target = self;
+  self.finderExtensionMenuItem.hidden = YES;
+  [self.statusMenu addItem:self.finderExtensionMenuItem];
 
   // Check for updates (Sparkle)
   NSMenuItem *updateItem =
@@ -863,13 +881,50 @@ static MSTAppDelegate *_shared = nil;
 #pragma mark - NSMenuDelegate
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
-  if (menu == self.formatMenuItem.submenu) {
+  if (menu == self.statusMenu) {
+    self.finderExtensionMenuItem.hidden =
+        FIFinderSyncController.extensionEnabled;
+  } else if (menu == self.formatMenuItem.submenu) {
     MSTOutputFormat currentFormat =
         [MSTConfigManager sharedManager].outputFormat;
     for (NSMenuItem *item in menu.itemArray) {
       item.state = (item.tag == currentFormat) ? NSControlStateValueOn
                                                : NSControlStateValueOff;
     }
+  }
+}
+
+#pragma mark - Finder Extension
+
+- (void)openFinderExtensionSettings {
+  [FIFinderSyncController showExtensionManagementInterface];
+}
+
+- (void)promptToEnableFinderExtensionIfNeeded {
+  if (FIFinderSyncController.extensionEnabled) {
+    return;
+  }
+
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  static NSString *const kPromptShownKey = @"Mist_FinderExtensionPromptShown";
+  if ([defaults boolForKey:kPromptShownKey]) {
+    return;
+  }
+  [defaults setBool:YES forKey:kPromptShownKey];
+
+  NSAlert *alert = [[NSAlert alloc] init];
+  alert.messageText = @"Enable the Finder Extension";
+  alert.informativeText =
+      @"Mist can add \"Upload via Mist\" to Finder's right-click menu. "
+      @"To enable it, turn on MistFinder in System Settings > Extensions.\n\n"
+      @"You can do this later from the menu bar via "
+      @"\"Enable Finder Extension...\".";
+  [alert addButtonWithTitle:@"Open System Settings"];
+  [alert addButtonWithTitle:@"Later"];
+
+  [NSApp activateIgnoringOtherApps:YES];
+  if ([alert runModal] == NSAlertFirstButtonReturn) {
+    [self openFinderExtensionSettings];
   }
 }
 

@@ -6,6 +6,11 @@ through the Services submenu.
 
 ## Enabling
 
+On first launch, Mist detects that the extension is disabled and offers
+to open System Settings for you. You can also use **Enable Finder
+Extension...** in the menu bar menu (the item only appears while the
+extension is disabled), or navigate manually:
+
 1. Launch Mist once (the extension registers with the system on first launch)
 2. Open **System Settings → General → Login Items & Extensions →
    Extensions → Added Extensions** (on older macOS:
