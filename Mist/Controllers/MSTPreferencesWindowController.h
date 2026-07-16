@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (MSTPreferencesWindowController *)sharedController;
 
 - (void)showWindow;
+- (void)showHistory;
 
 @end
 

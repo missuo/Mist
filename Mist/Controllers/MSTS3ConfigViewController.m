@@ -568,7 +568,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     self.tokenField.frame = (NSRect){.origin = regionFieldFrame.origin, .size = self.tokenField.frame.size};
     [self.tokenHintButton
         setFrameOrigin:NSMakePoint(regionFieldFrame.origin.x,
-                                   regionFieldFrame.origin.y - 20)];
+                                   regionFieldFrame.origin.y - 26)];
 
     // Pull up lower sections to close gaps
     self.savePathLabel.frame = NSOffsetRect(self.baseSavePathLabelFrame, 0, collapseOffset);

@@ -11,6 +11,7 @@
 #import "MSTPreferencesWindowController.h"
 #import "MSTS3HostConfig.h"
 #import "MSTS3Uploader.h"
+#import "MSTUploadHistoryItem.h"
 #import "MSTUploadHistoryManager.h"
 #import <FinderSync/FinderSync.h>
 #import <Sparkle/Sparkle.h>
@@ -29,7 +30,9 @@
 @property(nonatomic, strong) NSMenuItem *hostsMenuItem;
 @property(nonatomic, strong) NSMenuItem *formatMenuItem;
 @property(nonatomic, strong) NSMenuItem *statusInfoMenuItem;
+@property(nonatomic, strong) NSMenuItem *statusSeparatorItem;
 @property(nonatomic, strong) NSMenuItem *finderExtensionMenuItem;
+@property(nonatomic, strong) NSMenuItem *recentUploadsMenuItem;
 
 // Batch upload tracking
 @property(nonatomic, strong, nullable) NSMutableArray<NSString *> *batchUploadURLs;
@@ -39,6 +42,32 @@
 @end
 
 @implementation MSTAppDelegate
+
+// Template SF Symbol image for a status menu item, rasterized to a 16x16
+// bitmap — vector symbol images do not reliably render inside NSMenuItem.
+static NSImage *MSTMenuSymbol(NSString *symbolName) {
+  NSImage *symbol = [NSImage imageWithSystemSymbolName:symbolName
+                              accessibilityDescription:nil];
+  NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration
+      configurationWithPointSize:13
+                          weight:NSFontWeightRegular
+                           scale:NSImageSymbolScaleMedium];
+  symbol = [symbol imageWithSymbolConfiguration:config];
+
+  NSImage *bitmap = [NSImage imageWithSize:NSMakeSize(16, 16)
+                                   flipped:NO
+                            drawingHandler:^BOOL(NSRect dstRect) {
+                              NSSize size = symbol.size;
+                              NSRect rect = NSMakeRect(
+                                  NSMidX(dstRect) - size.width / 2,
+                                  NSMidY(dstRect) - size.height / 2,
+                                  size.width, size.height);
+                              [symbol drawInRect:rect];
+                              return YES;
+                            }];
+  bitmap.template = YES;
+  return bitmap;
+}
 
 static MSTAppDelegate *_shared = nil;
 
@@ -343,13 +372,15 @@ static MSTAppDelegate *_shared = nil;
   self.statusMenu = [[NSMenu alloc] init];
   self.statusMenu.delegate = self;
 
-  // Upload status info
+  // Upload status info — hidden while idle, shown only when there is
+  // something to report (uploading, result, URL copied).
   self.statusInfoMenuItem = [[NSMenuItem alloc] initWithTitle:@"Ready"
                                                        action:nil
                                                 keyEquivalent:@""];
   [self.statusMenu addItem:self.statusInfoMenuItem];
 
-  [self.statusMenu addItem:[NSMenuItem separatorItem]];
+  self.statusSeparatorItem = [NSMenuItem separatorItem];
+  [self.statusMenu addItem:self.statusSeparatorItem];
 
   // Upload from clipboard
   self.uploadMenuItem =
@@ -357,6 +388,7 @@ static MSTAppDelegate *_shared = nil;
                                  action:@selector(uploadFromClipboard)
                           keyEquivalent:@""];
   self.uploadMenuItem.target = self;
+  self.uploadMenuItem.image = MSTMenuSymbol(@"doc.on.clipboard");
   [self.statusMenu addItem:self.uploadMenuItem];
 
   // Select file
@@ -365,6 +397,7 @@ static MSTAppDelegate *_shared = nil;
                                  action:@selector(selectFileToUpload)
                           keyEquivalent:@""];
   selectFileItem.target = self;
+  selectFileItem.image = MSTMenuSymbol(@"folder");
   [self.statusMenu addItem:selectFileItem];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
@@ -419,8 +452,18 @@ static MSTAppDelegate *_shared = nil;
   [formatSubmenu addItem:ubbFormat];
 
   self.formatMenuItem.submenu = formatSubmenu;
+  self.formatMenuItem.image = MSTMenuSymbol(@"textformat");
   [self.statusMenu addItem:self.formatMenuItem];
   [self updateFormatMenuTitle];
+
+  // Recent uploads submenu (rebuilt each time the menu opens)
+  self.recentUploadsMenuItem =
+      [[NSMenuItem alloc] initWithTitle:@"Recent Uploads"
+                                 action:nil
+                          keyEquivalent:@""];
+  self.recentUploadsMenuItem.image = MSTMenuSymbol(@"clock.arrow.circlepath");
+  self.recentUploadsMenuItem.submenu = [[NSMenu alloc] init];
+  [self.statusMenu addItem:self.recentUploadsMenuItem];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
 
@@ -430,6 +473,7 @@ static MSTAppDelegate *_shared = nil;
                                  action:@selector(openPreferences)
                           keyEquivalent:@","];
   prefsItem.target = self;
+  prefsItem.image = MSTMenuSymbol(@"gearshape");
   [self.statusMenu addItem:prefsItem];
 
   // Shown only while the Finder extension is disabled
@@ -439,6 +483,7 @@ static MSTAppDelegate *_shared = nil;
                           keyEquivalent:@""];
   self.finderExtensionMenuItem.target = self;
   self.finderExtensionMenuItem.hidden = YES;
+  self.finderExtensionMenuItem.image = MSTMenuSymbol(@"puzzlepiece.extension");
   [self.statusMenu addItem:self.finderExtensionMenuItem];
 
   // Check for updates (Sparkle)
@@ -447,6 +492,7 @@ static MSTAppDelegate *_shared = nil;
                                  action:@selector(checkForUpdates:)
                           keyEquivalent:@""];
   updateItem.target = self.updaterController;
+  updateItem.image = MSTMenuSymbol(@"arrow.triangle.2.circlepath");
   [self.statusMenu addItem:updateItem];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
@@ -456,6 +502,7 @@ static MSTAppDelegate *_shared = nil;
                                                     action:@selector(quit)
                                              keyEquivalent:@"q"];
   quitItem.target = self;
+  quitItem.image = MSTMenuSymbol(@"power");
   [self.statusMenu addItem:quitItem];
 
   self.statusItem.menu = self.statusMenu;
@@ -503,8 +550,13 @@ static MSTAppDelegate *_shared = nil;
   MSTS3HostConfig *defaultHost = [MSTConfigManager sharedManager].defaultHost;
   if (defaultHost) {
     self.hostsMenuItem.title = [NSString stringWithFormat:@"Host: %@", defaultHost.name];
+    NSImage *icon = [[NSImage
+        imageNamed:[MSTS3Region iconNameForProvider:defaultHost.providerType]] copy];
+    icon.size = NSMakeSize(16, 16);
+    self.hostsMenuItem.image = icon;
   } else {
     self.hostsMenuItem.title = @"Host";
+    self.hostsMenuItem.image = MSTMenuSymbol(@"server.rack");
   }
 }
 
@@ -882,8 +934,11 @@ static MSTAppDelegate *_shared = nil;
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
   if (menu == self.statusMenu) {
-    self.finderExtensionMenuItem.hidden =
-        FIFinderSyncController.extensionEnabled;
+    BOOL idle = [self.statusInfoMenuItem.title isEqualToString:@"Ready"];
+    self.statusInfoMenuItem.hidden = idle;
+    self.statusSeparatorItem.hidden = idle;
+    self.finderExtensionMenuItem.hidden = [self isFinderExtensionEnabled];
+    [self updateRecentUploadsMenu];
   } else if (menu == self.formatMenuItem.submenu) {
     MSTOutputFormat currentFormat =
         [MSTConfigManager sharedManager].outputFormat;
@@ -894,14 +949,114 @@ static MSTAppDelegate *_shared = nil;
   }
 }
 
+- (void)menuDidClose:(NSMenu *)menu {
+  // A result line (e.g. "Uploaded 2 files") is shown once, then cleared
+  // so it does not linger in the menu forever. Progress text stays while
+  // an upload is running.
+  if (menu == self.statusMenu && !self.isUploading) {
+    self.statusInfoMenuItem.title = @"Ready";
+  }
+}
+
+#pragma mark - Recent Uploads
+
+- (void)updateRecentUploadsMenu {
+  NSMenu *submenu = self.recentUploadsMenuItem.submenu;
+  [submenu removeAllItems];
+
+  NSArray<MSTUploadHistoryItem *> *items =
+      [MSTUploadHistoryManager sharedManager].historyItems;
+  if (items.count == 0) {
+    NSMenuItem *empty = [[NSMenuItem alloc] initWithTitle:@"No Recent Uploads"
+                                                   action:nil
+                                            keyEquivalent:@""];
+    empty.enabled = NO;
+    [submenu addItem:empty];
+    return;
+  }
+
+  NSUInteger count = MIN(items.count, (NSUInteger)5);
+  for (NSUInteger i = 0; i < count; i++) {
+    MSTUploadHistoryItem *history = items[i];
+    NSString *title = history.filename;
+    if (title.length > 40) {
+      title = [NSString stringWithFormat:@"%@…%@",
+                                         [title substringToIndex:24],
+                                         [title substringFromIndex:title.length - 12]];
+    }
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:title
+                                                  action:@selector(copyRecentUpload:)
+                                           keyEquivalent:@""];
+    item.target = self;
+    item.representedObject = history.url;
+    item.toolTip = history.url;
+    if (history.thumbnailData) {
+      NSImage *thumb = [[NSImage alloc] initWithData:history.thumbnailData];
+      thumb.size = NSMakeSize(16, 16);
+      item.image = thumb;
+    } else {
+      item.image = MSTMenuSymbol(@"doc");
+    }
+    [submenu addItem:item];
+  }
+
+  [submenu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem *showAll = [[NSMenuItem alloc] initWithTitle:@"Show All..."
+                                                   action:@selector(showUploadHistory)
+                                            keyEquivalent:@""];
+  showAll.target = self;
+  [submenu addItem:showAll];
+}
+
+- (void)copyRecentUpload:(NSMenuItem *)sender {
+  NSString *url = sender.representedObject;
+  if (url.length == 0) {
+    return;
+  }
+  NSString *formatted = [[MSTConfigManager sharedManager] formatURL:url];
+  [self copyToClipboard:formatted];
+  self.statusInfoMenuItem.title = @"URL copied to clipboard";
+}
+
+- (void)showUploadHistory {
+  [[MSTPreferencesWindowController sharedController] showHistory];
+}
+
 #pragma mark - Finder Extension
+
+- (BOOL)isFinderExtensionEnabled {
+  // FIFinderSyncController.extensionEnabled only reports correctly from
+  // inside the extension process; from the host app, ask pluginkit.
+  // Its output line starts with "+" (enabled), "-" (disabled), or a
+  // space (system default, which is disabled for Finder Sync).
+  NSTask *task = [[NSTask alloc] init];
+  task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/pluginkit"];
+  task.arguments = @[ @"-m", @"-i", @"nz.owo.Mist.MistFinder" ];
+  NSPipe *pipe = [NSPipe pipe];
+  task.standardOutput = pipe;
+  task.standardError = [NSPipe pipe];
+
+  NSError *error = nil;
+  if (![task launchAndReturnError:&error]) {
+    NSLog(@"[Mist] pluginkit launch failed: %@", error);
+    return NO;
+  }
+  [task waitUntilExit];
+
+  NSData *data = [pipe.fileHandleForReading readDataToEndOfFile];
+  NSString *output = [[NSString alloc] initWithData:data
+                                           encoding:NSUTF8StringEncoding];
+  return [[output stringByTrimmingCharactersInSet:
+                      [NSCharacterSet whitespaceAndNewlineCharacterSet]]
+      hasPrefix:@"+"];
+}
 
 - (void)openFinderExtensionSettings {
   [FIFinderSyncController showExtensionManagementInterface];
 }
 
 - (void)promptToEnableFinderExtensionIfNeeded {
-  if (FIFinderSyncController.extensionEnabled) {
+  if ([self isFinderExtensionEnabled]) {
     return;
   }
 

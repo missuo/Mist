@@ -31,7 +31,7 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(500, 420);
+    self.preferredContentSize = NSMakeSize(680, 480);
   }
   return self;
 }
@@ -41,7 +41,7 @@
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, 420)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 680, 480)];
 }
 
 - (void)viewDidLoad {

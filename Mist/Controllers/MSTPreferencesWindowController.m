@@ -77,6 +77,11 @@ static MSTPreferencesWindowController *_sharedController = nil;
     [NSApp activateIgnoringOtherApps:YES];
 }
 
+- (void)showHistory {
+    [self showWindow];
+    [self switchToIdentifier:@"history"];
+}
+
 #pragma mark - Toolbar Delegate
 
 - (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {

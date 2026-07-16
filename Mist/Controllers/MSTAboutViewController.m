@@ -12,13 +12,13 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(350, 280);
+    self.preferredContentSize = NSMakeSize(680, 480);
   }
   return self;
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 350, 280)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 680, 480)];
 }
 
 - (void)viewDidLoad {
