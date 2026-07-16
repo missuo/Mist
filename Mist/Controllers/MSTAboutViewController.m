@@ -6,6 +6,7 @@
 //
 
 #import "MSTAboutViewController.h"
+#import "MSTS3Region.h"
 
 @implementation MSTAboutViewController
 
@@ -26,15 +27,34 @@
   [self setupUI];
 }
 
-- (void)setupUI {
-  CGFloat centerX = self.view.bounds.size.width / 2;
-  CGFloat y = self.view.bounds.size.height;
+- (NSTextField *)addCenteredLabel:(NSString *)text
+                             font:(NSFont *)font
+                            color:(NSColor *)color
+                                y:(CGFloat)y
+                           height:(CGFloat)height {
+  NSTextField *label = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(0, y, self.view.bounds.size.width, height)];
+  label.stringValue = text;
+  label.font = font;
+  label.textColor = color;
+  label.alignment = NSTextAlignmentCenter;
+  label.bezeled = NO;
+  label.drawsBackground = NO;
+  label.editable = NO;
+  label.selectable = NO;
+  [self.view addSubview:label];
+  return label;
+}
 
-  // App Icon (64x64)
-  y -= 20; // top margin
-  y -= 64; // icon height
+- (void)setupUI {
+  CGFloat width = self.view.bounds.size.width;
+  CGFloat centerX = width / 2;
+  CGFloat y = self.view.bounds.size.height - 36;
+
+  // App Icon
+  y -= 96;
   NSImageView *iconView =
-      [[NSImageView alloc] initWithFrame:NSMakeRect(centerX - 32, y, 64, 64)];
+      [[NSImageView alloc] initWithFrame:NSMakeRect(centerX - 48, y, 96, 96)];
   NSImage *icon = [NSImage imageNamed:@"AppIcon"];
   if (!icon) {
     icon = [NSApp applicationIconImage];
@@ -44,22 +64,15 @@
   [self.view addSubview:iconView];
 
   // App Name
-  y -= 8;  // spacing
-  y -= 28; // label height
-  NSTextField *nameLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(0, y, self.view.bounds.size.width, 28)];
-  nameLabel.stringValue = @"Mist";
-  nameLabel.font = [NSFont systemFontOfSize:22 weight:NSFontWeightBold];
-  nameLabel.alignment = NSTextAlignmentCenter;
-  nameLabel.textColor = [NSColor labelColor];
-  nameLabel.bezeled = NO;
-  nameLabel.drawsBackground = NO;
-  nameLabel.editable = NO;
-  [self.view addSubview:nameLabel];
+  y -= 10 + 34;
+  [self addCenteredLabel:@"Mist"
+                    font:[NSFont systemFontOfSize:26 weight:NSFontWeightBold]
+                   color:[NSColor labelColor]
+                       y:y
+                  height:34];
 
   // Version
-  y -= 4;  // spacing
-  y -= 18; // label height
+  y -= 2 + 18;
   NSString *version =
       [[NSBundle mainBundle]
           objectForInfoDictionaryKey:@"CFBundleShortVersionString"]
@@ -67,55 +80,115 @@
   NSString *build =
       [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"]
           ?: @"1";
-  NSTextField *versionLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(0, y, self.view.bounds.size.width, 18)];
-  versionLabel.stringValue =
-      [NSString stringWithFormat:@"Version %@ (%@)", version, build];
-  versionLabel.font = [NSFont systemFontOfSize:11];
-  versionLabel.textColor = [NSColor secondaryLabelColor];
-  versionLabel.alignment = NSTextAlignmentCenter;
-  versionLabel.bezeled = NO;
-  versionLabel.drawsBackground = NO;
-  versionLabel.editable = NO;
-  [self.view addSubview:versionLabel];
+  [self addCenteredLabel:[NSString
+                             stringWithFormat:@"Version %@ (%@)", version, build]
+                    font:[NSFont systemFontOfSize:12]
+                   color:[NSColor secondaryLabelColor]
+                       y:y
+                  height:18];
 
   // Description
-  y -= 12; // spacing
-  y -= 18; // label height
-  NSTextField *descLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(20, y, self.view.bounds.size.width - 40, 18)];
-  descLabel.stringValue = @"A lightweight S3 image uploader for macOS";
-  descLabel.font = [NSFont systemFontOfSize:12];
-  descLabel.textColor = [NSColor secondaryLabelColor];
-  descLabel.alignment = NSTextAlignmentCenter;
-  descLabel.bezeled = NO;
-  descLabel.drawsBackground = NO;
-  descLabel.editable = NO;
-  [self.view addSubview:descLabel];
+  y -= 12 + 20;
+  [self addCenteredLabel:@"A native macOS menu bar uploader for S3-compatible "
+                         @"storage and S.EE"
+                    font:[NSFont systemFontOfSize:13]
+                   color:[NSColor secondaryLabelColor]
+                       y:y
+                  height:20];
 
-  // Made with love message
-  NSTextField *madeWithLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(0, 38, self.view.bounds.size.width, 16)];
-  madeWithLabel.stringValue = @"Made with 💙 from SF";
-  madeWithLabel.font = [NSFont systemFontOfSize:10];
-  madeWithLabel.textColor = [NSColor tertiaryLabelColor];
-  madeWithLabel.alignment = NSTextAlignmentCenter;
-  madeWithLabel.bezeled = NO;
-  madeWithLabel.drawsBackground = NO;
-  madeWithLabel.editable = NO;
-  [self.view addSubview:madeWithLabel];
+  // Supported providers
+  y -= 20 + 28;
+  NSArray<NSNumber *> *providers = @[
+    @(MSTS3ProviderTypeAmazonS3), @(MSTS3ProviderTypeWasabi),
+    @(MSTS3ProviderTypeCloudflareR2), @(MSTS3ProviderTypeBackblazeB2),
+    @(MSTS3ProviderTypeMinIO), @(MSTS3ProviderTypeCustom),
+    @(MSTS3ProviderTypeSEE)
+  ];
+  CGFloat iconSize = 28;
+  CGFloat iconGap = 16;
+  CGFloat rowWidth =
+      providers.count * iconSize + (providers.count - 1) * iconGap;
+  CGFloat iconX = centerX - rowWidth / 2;
+  for (NSNumber *provider in providers) {
+    MSTS3ProviderType type = provider.integerValue;
+    NSImageView *providerIcon = [[NSImageView alloc]
+        initWithFrame:NSMakeRect(iconX, y, iconSize, iconSize)];
+    providerIcon.image =
+        [NSImage imageNamed:[MSTS3Region iconNameForProvider:type]];
+    providerIcon.imageScaling = NSImageScaleProportionallyUpOrDown;
+    providerIcon.toolTip = [MSTS3Region displayNameForProvider:type];
+    [self.view addSubview:providerIcon];
+    iconX += iconSize + iconGap;
+  }
 
-  // Copyright (fixed at bottom)
-  NSTextField *copyrightLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(0, 20, self.view.bounds.size.width, 16)];
-  copyrightLabel.stringValue = @"© 2025 OwO Network, LLC";
-  copyrightLabel.font = [NSFont systemFontOfSize:10];
-  copyrightLabel.textColor = [NSColor tertiaryLabelColor];
-  copyrightLabel.alignment = NSTextAlignmentCenter;
-  copyrightLabel.bezeled = NO;
-  copyrightLabel.drawsBackground = NO;
-  copyrightLabel.editable = NO;
-  [self.view addSubview:copyrightLabel];
+  // Website + GitHub buttons
+  y -= 24 + 24;
+  NSButton *websiteButton = [NSButton buttonWithTitle:@"Website"
+                                               target:self
+                                               action:@selector(openWebsite:)];
+  websiteButton.bezelStyle = NSBezelStyleRounded;
+  [websiteButton sizeToFit];
+
+  NSButton *githubButton = [NSButton buttonWithTitle:@"View on GitHub"
+                                              target:self
+                                              action:@selector(openGitHub:)];
+  githubButton.bezelStyle = NSBezelStyleRounded;
+  [githubButton sizeToFit];
+
+  CGFloat buttonGap = 12;
+  CGFloat buttonsWidth = websiteButton.frame.size.width + buttonGap +
+                         githubButton.frame.size.width;
+  [websiteButton setFrameOrigin:NSMakePoint(centerX - buttonsWidth / 2, y)];
+  [githubButton
+      setFrameOrigin:NSMakePoint(centerX - buttonsWidth / 2 +
+                                     websiteButton.frame.size.width + buttonGap,
+                                 y)];
+  [self.view addSubview:websiteButton];
+  [self.view addSubview:githubButton];
+
+  // uPic acknowledgment — Mist started life as a uPic-inspired rewrite
+  NSButton *upicLink =
+      [NSButton buttonWithTitle:@"Built upon the great work of uPic ❤️"
+                         target:self
+                         action:@selector(openUPic:)];
+  upicLink.bordered = NO;
+  upicLink.attributedTitle = [[NSAttributedString alloc]
+      initWithString:upicLink.title
+          attributes:@{
+            NSForegroundColorAttributeName : [NSColor secondaryLabelColor],
+            NSFontAttributeName : [NSFont systemFontOfSize:11],
+          }];
+  [upicLink sizeToFit];
+  [upicLink setFrameOrigin:NSMakePoint(centerX - upicLink.frame.size.width / 2,
+                                       64)];
+  [self.view addSubview:upicLink];
+
+  // Credits (pinned at the bottom)
+  [self addCenteredLabel:@"Made with 💙 in SF"
+                    font:[NSFont systemFontOfSize:11]
+                   color:[NSColor tertiaryLabelColor]
+                       y:44
+                  height:16];
+  [self addCenteredLabel:@"© 2025 OwO Network, LLC"
+                    font:[NSFont systemFontOfSize:11]
+                   color:[NSColor tertiaryLabelColor]
+                       y:24
+                  height:16];
+}
+
+- (void)openWebsite:(id)sender {
+  [[NSWorkspace sharedWorkspace]
+      openURL:[NSURL URLWithString:@"https://mist.ws"]];
+}
+
+- (void)openGitHub:(id)sender {
+  [[NSWorkspace sharedWorkspace]
+      openURL:[NSURL URLWithString:@"https://github.com/missuo/Mist"]];
+}
+
+- (void)openUPic:(id)sender {
+  [[NSWorkspace sharedWorkspace]
+      openURL:[NSURL URLWithString:@"https://github.com/gee1k/uPic"]];
 }
 
 @end

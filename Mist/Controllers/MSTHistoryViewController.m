@@ -17,6 +17,13 @@
 @property (nonatomic, strong) NSTextField *emptyLabel;
 @property (nonatomic, strong) NSArray<MSTUploadHistoryItem *> *historyItems;
 
+// Hover image preview
+@property (nonatomic, strong) NSPopover *previewPopover;
+@property (nonatomic, strong) NSImageView *previewImageView;
+@property (nonatomic, assign) NSInteger previewRow;
+@property (nonatomic, strong) NSURLSessionDataTask *previewTask;
+@property (nonatomic, strong) NSCache<NSString *, NSImage *> *previewCache;
+
 @end
 
 @implementation MSTHistoryViewController
@@ -45,8 +52,12 @@
 }
 
 - (void)setupUI {
-  // Clear button
-  self.clearButton = [[NSButton alloc] initWithFrame:NSMakeRect(490, 365, 90, 24)];
+  CGFloat width = self.view.bounds.size.width;
+  CGFloat height = self.view.bounds.size.height;
+
+  // Clear button (top right)
+  self.clearButton = [[NSButton alloc]
+      initWithFrame:NSMakeRect(width - 20 - 90, height - 44, 90, 24)];
   self.clearButton.title = @"Clear All";
   self.clearButton.bezelStyle = NSBezelStyleRounded;
   self.clearButton.target = self;
@@ -55,7 +66,8 @@
   [self.view addSubview:self.clearButton];
 
   // Table view in scroll view
-  self.scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(20, 20, 560, 335)];
+  self.scrollView = [[NSScrollView alloc]
+      initWithFrame:NSMakeRect(20, 20, width - 40, height - 84)];
   self.scrollView.hasVerticalScroller = YES;
   self.scrollView.hasHorizontalScroller = NO;
   self.scrollView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
@@ -81,28 +93,28 @@
   // Filename column
   NSTableColumn *filenameColumn = [[NSTableColumn alloc] initWithIdentifier:@"filename"];
   filenameColumn.title = @"Filename";
-  filenameColumn.width = 140;
+  filenameColumn.width = 160;
   filenameColumn.minWidth = 80;
   [self.tableView addTableColumn:filenameColumn];
 
   // URL column
   NSTableColumn *urlColumn = [[NSTableColumn alloc] initWithIdentifier:@"url"];
   urlColumn.title = @"URL";
-  urlColumn.width = 180;
+  urlColumn.width = 218;
   urlColumn.minWidth = 100;
   [self.tableView addTableColumn:urlColumn];
 
   // Host column
   NSTableColumn *hostColumn = [[NSTableColumn alloc] initWithIdentifier:@"host"];
   hostColumn.title = @"Host";
-  hostColumn.width = 80;
+  hostColumn.width = 70;
   hostColumn.minWidth = 60;
   [self.tableView addTableColumn:hostColumn];
 
   // Date column
   NSTableColumn *dateColumn = [[NSTableColumn alloc] initWithIdentifier:@"date"];
   dateColumn.title = @"Date";
-  dateColumn.width = 100;
+  dateColumn.width = 118;
   dateColumn.minWidth = 80;
   [self.tableView addTableColumn:dateColumn];
 
@@ -110,7 +122,8 @@
   [self.view addSubview:self.scrollView];
 
   // Empty state label
-  self.emptyLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 180, 600, 40)];
+  self.emptyLabel = [[NSTextField alloc]
+      initWithFrame:NSMakeRect(0, height / 2 - 20, width, 40)];
   self.emptyLabel.stringValue = @"No upload history";
   self.emptyLabel.alignment = NSTextAlignmentCenter;
   self.emptyLabel.bezeled = NO;
@@ -219,6 +232,94 @@
   return YES;
 }
 
+#pragma mark - Hover Preview
+
+- (void)mouseEntered:(NSEvent *)event {
+  NSPoint point = [self.tableView convertPoint:event.locationInWindow
+                                      fromView:nil];
+  NSInteger row = [self.tableView rowAtPoint:point];
+  if (row < 0 || row >= (NSInteger)self.historyItems.count) {
+    return;
+  }
+  MSTUploadHistoryItem *item = self.historyItems[row];
+  if (!item.thumbnailData) {
+    return;
+  }
+  [self showPreviewForItem:item row:row];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+  [self hidePreview];
+}
+
+- (void)showPreviewForItem:(MSTUploadHistoryItem *)item row:(NSInteger)row {
+  [self.previewTask cancel];
+
+  if (!self.previewPopover) {
+    self.previewImageView =
+        [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, 320, 320)];
+    self.previewImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
+
+    NSViewController *contentVC = [[NSViewController alloc] init];
+    contentVC.view = self.previewImageView;
+
+    self.previewPopover = [[NSPopover alloc] init];
+    self.previewPopover.behavior = NSPopoverBehaviorApplicationDefined;
+    self.previewPopover.contentViewController = contentVC;
+    self.previewPopover.contentSize = NSMakeSize(320, 320);
+
+    self.previewCache = [[NSCache alloc] init];
+    self.previewCache.countLimit = 20;
+  }
+
+  self.previewRow = row;
+  NSImage *cached = item.url ? [self.previewCache objectForKey:item.url] : nil;
+  self.previewImageView.image =
+      cached ?: [[NSImage alloc] initWithData:item.thumbnailData];
+
+  NSRect cellRect = [self.tableView frameOfCellAtColumn:0 row:row];
+  [self.previewPopover showRelativeToRect:cellRect
+                                   ofView:self.tableView
+                            preferredEdge:NSRectEdgeMaxX];
+
+  // The stored thumbnail is small; fetch the full-size image for a sharp
+  // preview and swap it in when it arrives.
+  NSURL *url = item.url.length ? [NSURL URLWithString:item.url] : nil;
+  if (cached || !url) {
+    return;
+  }
+  __weak typeof(self) weakSelf = self;
+  self.previewTask = [[NSURLSession sharedSession]
+        dataTaskWithURL:url
+      completionHandler:^(NSData *data, NSURLResponse *response,
+                          NSError *error) {
+        if (!data || error) {
+          return;
+        }
+        NSImage *fullImage = [[NSImage alloc] initWithData:data];
+        if (!fullImage) {
+          return;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+          typeof(self) self = weakSelf;
+          if (!self) {
+            return;
+          }
+          [self.previewCache setObject:fullImage forKey:item.url];
+          if (self.previewRow == row && self.previewPopover.isShown) {
+            self.previewImageView.image = fullImage;
+          }
+        });
+      }];
+  [self.previewTask resume];
+}
+
+- (void)hidePreview {
+  [self.previewTask cancel];
+  self.previewTask = nil;
+  [self.previewPopover close];
+}
+
 #pragma mark - NSTableViewDataSource
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
@@ -245,6 +346,15 @@
       imageView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
       cellView.imageView = imageView;
       [cellView addSubview:imageView];
+
+      // Hovering a thumbnail shows an enlarged preview popover
+      NSTrackingArea *tracking = [[NSTrackingArea alloc]
+          initWithRect:NSZeroRect
+               options:(NSTrackingMouseEnteredAndExited |
+                        NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect)
+                 owner:self
+              userInfo:nil];
+      [imageView addTrackingArea:tracking];
     }
 
     if (item.thumbnailData) {
