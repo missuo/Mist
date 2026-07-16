@@ -14,7 +14,6 @@ import re
 import sys
 from email.utils import formatdate
 
-ZIP_NAME = "Mist.zip"
 APPCAST_PATH = "docs/appcast.xml"
 
 ITEM_TEMPLATE = """    <item>
@@ -110,18 +109,20 @@ def description_block(version: str, notes_url: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", required=True, help="release tag, e.g. v1.0.14")
+    parser.add_argument("--tag", required=True, help="release tag, e.g. v1.0.15")
     parser.add_argument("--repo", required=True, help="owner/name")
     parser.add_argument("--dist", required=True, help="directory holding the .sparkle.json file")
+    parser.add_argument("--zip-name", default="Mist.zip", help="release zip asset name")
+    parser.add_argument("--cask", help="path to a Homebrew cask to bump (version + sha256)")
     args = parser.parse_args()
 
-    meta_path = pathlib.Path(args.dist) / f"{ZIP_NAME}.sparkle.json"
+    meta_path = pathlib.Path(args.dist) / f"{args.zip_name}.sparkle.json"
     if not meta_path.exists():
         sys.exit(f"missing Sparkle metadata: {meta_path}")
     meta = json.loads(meta_path.read_text())
 
     notes_url = f"https://github.com/{args.repo}/releases/tag/{args.tag}"
-    url = f"https://github.com/{args.repo}/releases/download/{args.tag}/{ZIP_NAME}"
+    url = f"https://github.com/{args.repo}/releases/download/{args.tag}/{args.zip_name}"
 
     appcast = pathlib.Path(APPCAST_PATH)
     xml = appcast.read_text()
@@ -150,6 +151,14 @@ def main():
         sys.exit(f"{APPCAST_PATH}: could not find <language> insertion point")
     appcast.write_text(new_xml)
     print(f"{APPCAST_PATH}: added {meta['version']} ({meta['build']})")
+
+    if args.cask and meta.get("sha256"):
+        cask = pathlib.Path(args.cask)
+        text = cask.read_text()
+        text = re.sub(r'version "[^"]*"', f'version "{meta["version"]}"', text, count=1)
+        text = re.sub(r'sha256 "[^"]*"', f'sha256 "{meta["sha256"]}"', text, count=1)
+        cask.write_text(text)
+        print(f"{args.cask}: bumped to {meta['version']}")
 
 
 if __name__ == "__main__":

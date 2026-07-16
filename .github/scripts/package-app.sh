@@ -127,9 +127,14 @@ fi
 # The Sparkle update zip contains the stapled app.
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$OUTPUT_ZIP"
 
-# DMG for manual downloads.
+# DMG for manual downloads, with an /Applications symlink for drag-install.
 rm -f "$OUTPUT_DMG"
-hdiutil create -volname "Mist" -srcfolder "$APP_PATH" -ov -format UDZO "$OUTPUT_DMG"
+DMG_STAGING="$(mktemp -d)/Mist"
+mkdir -p "$DMG_STAGING"
+ditto "$APP_PATH" "$DMG_STAGING/Mist.app"
+ln -s /Applications "$DMG_STAGING/Applications"
+hdiutil create -volname "Mist" -srcfolder "$DMG_STAGING" -ov -format UDZO "$OUTPUT_DMG"
+rm -rf "$DMG_STAGING"
 if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   sign --sign "$CODESIGN_IDENTITY" --timestamp "$OUTPUT_DMG"
 fi
@@ -149,18 +154,21 @@ if [ -n "${SPARKLE_BIN:-}" ] && [ -n "${SPARKLE_PRIVATE_KEY_FILE:-}" ]; then
   fi
 
   ZIP_LENGTH=$(stat -f%z "$OUTPUT_ZIP")
+  ZIP_SHA256=$(shasum -a 256 "$OUTPUT_ZIP" | awk '{print $1}')
   APP_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist")
   APP_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PATH/Contents/Info.plist")
   MIN_SYSTEM_VERSION=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP_PATH/Contents/Info.plist")
 
-  ED_SIGNATURE="$ED_SIGNATURE" ZIP_LENGTH="$ZIP_LENGTH" APP_VERSION="$APP_VERSION" \
-  APP_BUILD="$APP_BUILD" MIN_SYSTEM_VERSION="$MIN_SYSTEM_VERSION" OUTPUT_ZIP="$OUTPUT_ZIP" \
+  ED_SIGNATURE="$ED_SIGNATURE" ZIP_LENGTH="$ZIP_LENGTH" ZIP_SHA256="$ZIP_SHA256" \
+  APP_VERSION="$APP_VERSION" APP_BUILD="$APP_BUILD" \
+  MIN_SYSTEM_VERSION="$MIN_SYSTEM_VERSION" OUTPUT_ZIP="$OUTPUT_ZIP" \
   python3 - <<'PY'
 import json, os
 with open(os.environ["OUTPUT_ZIP"] + ".sparkle.json", "w") as f:
     json.dump({
         "signature": os.environ["ED_SIGNATURE"],
         "length": int(os.environ["ZIP_LENGTH"]),
+        "sha256": os.environ["ZIP_SHA256"],
         "version": os.environ["APP_VERSION"],
         "build": os.environ["APP_BUILD"],
         "minimum_system_version": os.environ["MIN_SYSTEM_VERSION"],
