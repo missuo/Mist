@@ -4,8 +4,8 @@
   <p><strong>A native macOS menu bar uploader for S3-compatible storage and S.EE</strong></p>
 
   <p>
-    <a href="https://github.com/missuo/Mist/releases/latest"><img src="https://img.shields.io/github/v/release/missuo/Mist" alt="Latest Release"></a>
-    <a href="https://github.com/missuo/Mist/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue" alt="License"></a>
+    <a href="https://github.com/missuo/mist/releases/latest"><img src="https://img.shields.io/github/v/release/missuo/mist" alt="Latest Release"></a>
+    <a href="https://github.com/missuo/mist/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue" alt="License"></a>
     <img src="https://img.shields.io/badge/macOS-14.0%2B-blue" alt="macOS 14.0+">
   </p>
 </div>
@@ -47,7 +47,7 @@ brew install owo-network/brew/mist
 **Manual**
 
 Download `Mist-x.y.z.dmg` from the
-[latest release](https://github.com/missuo/Mist/releases/latest) and
+[latest release](https://github.com/missuo/mist/releases/latest) and
 drag Mist into Applications.
 
 Requires macOS 14.0 or later on Apple Silicon.
@@ -79,7 +79,7 @@ URLs to the clipboard.
 ## Development
 
 ```bash
-git clone https://github.com/missuo/Mist.git
+git clone https://github.com/missuo/mist.git
 cd Mist
 open Mist.xcodeproj
 ```

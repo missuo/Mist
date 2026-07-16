@@ -16,7 +16,7 @@
 		</dict>
 	</array>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/missuo/Mist/main/docs/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/missuo/mist/main/docs/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>RHEhllstUuuVrVDCPGrbhg/8LivSzpuZB9X3u3xdV5o=</string>
 	<key>SUEnableAutomaticChecks</key>

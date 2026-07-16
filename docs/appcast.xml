@@ -6,7 +6,7 @@
     <language>en</language>
     <item>
       <title>Version 1.0.15</title>
-      <link>https://github.com/missuo/Mist/releases/tag/v1.0.15</link>
+      <link>https://github.com/missuo/mist/releases/tag/v1.0.15</link>
       <description><![CDATA[
 <h3>Added</h3>
 <ul>
@@ -25,7 +25,7 @@
       <sparkle:shortVersionString>1.0.15</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <pubDate>Thu, 16 Jul 2026 05:58:46 GMT</pubDate>
-      <enclosure url="https://github.com/missuo/Mist/releases/download/v1.0.15/Mist-1.0.15.zip"
+      <enclosure url="https://github.com/missuo/mist/releases/download/v1.0.15/Mist-1.0.15.zip"
         sparkle:edSignature="s1ESHTHpUauxjaNM5Zd1Y5Vk6sNo6QHuImLUqjWJ3lxBS11UEmkTSJ3oJOmzOQwFNWcZdixH3CZHYS4mt+nuAA=="
         length="3214950"
         type="application/octet-stream" />

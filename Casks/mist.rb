@@ -2,7 +2,7 @@ cask "mist" do
   version "1.0.15"
   sha256 "99c8f0983d44f313dca93bfb882ac18be813bf70a99ea900a575100ef5973454" # auto-updated by the release workflow
 
-  url "https://github.com/missuo/Mist/releases/download/v#{version}/Mist-#{version}.zip"
+  url "https://github.com/missuo/mist/releases/download/v#{version}/Mist-#{version}.zip"
   name "Mist"
   desc "Native menu bar uploader for S3-compatible storage and S.EE"
   homepage "https://mist.ws/"
