@@ -6,7 +6,7 @@ The release workflow embeds each release's section (matched by the `## <version>
 heading) into the Sparkle appcast, so it appears as formatted release notes in
 the in-app update dialog.
 
-## 1.0.14 - 2026-07-16
+## 1.0.15 - 2026-07-16
 
 ### Added
 
