@@ -4,5 +4,31 @@
     <title>Mist</title>
     <description>Most recent updates for Mist</description>
     <language>en</language>
+    <item>
+      <title>Version 1.0.15</title>
+      <link>https://github.com/missuo/Mist/releases/tag/v1.0.15</link>
+      <description><![CDATA[
+<h3>Added</h3>
+<ul>
+<li>Automatic updates via Sparkle: Mist now checks for new versions every 6 hours, and you can check manually with "Check for Updates..." in the menu bar.</li>
+<li>Releases are signed with a Developer ID certificate and notarized by Apple, so downloads open without Gatekeeper warnings.</li>
+<li>Finder extension: "Upload via Mist" now appears directly in Finder's right-click menu (enable MistFinder in System Settings → Extensions). This replaces the Automator-based Services integration, which lived one level deep in the Services submenu.</li>
+<li>Mist offers to open System Settings when the Finder extension is disabled: once on first launch, and any time via "Enable Finder Extension..." in the menu bar menu (shown only while it is off).</li>
+<li>Provider icons now show inside the provider dropdown and the menu bar Host submenu.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Image compression is now truly off by default. Older builds stored a legacy compression value of 100, which silently re-encoded uploaded images (roughly 75% JPEG quality); that value is now treated as "off", so images upload untouched unless you explicitly pick a quality of 10-90 in Preferences.</li>
+</ul>
+      ]]></description>
+      <sparkle:version>10015</sparkle:version>
+      <sparkle:shortVersionString>1.0.15</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Thu, 16 Jul 2026 05:58:46 GMT</pubDate>
+      <enclosure url="https://github.com/missuo/Mist/releases/download/v1.0.15/Mist-1.0.15.zip"
+        sparkle:edSignature="s1ESHTHpUauxjaNM5Zd1Y5Vk6sNo6QHuImLUqjWJ3lxBS11UEmkTSJ3oJOmzOQwFNWcZdixH3CZHYS4mt+nuAA=="
+        length="3214950"
+        type="application/octet-stream" />
+    </item>
   </channel>
 </rss>
