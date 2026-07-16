@@ -24,6 +24,20 @@ REPO_ROOT="$SCRIPT_DIR/../.."
 
 test -d "$APP_PATH"
 
+# Apple's timestamp service is occasionally flaky; retry codesign a few
+# times before giving up.
+sign() {
+  local attempt
+  for attempt in 1 2 3; do
+    if codesign "$@"; then
+      return 0
+    fi
+    echo "codesign failed (attempt $attempt/3), retrying in 5s..." >&2
+    sleep 5
+  done
+  return 1
+}
+
 if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   echo "Signing with identity: $CODESIGN_IDENTITY"
   SIGN_FLAGS=(--force --options runtime --timestamp --sign "$CODESIGN_IDENTITY")
@@ -32,11 +46,11 @@ if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   # and must be signed individually before the framework bundle itself.
   SPARKLE_FW="$APP_PATH/Contents/Frameworks/Sparkle.framework"
   if [ -d "$SPARKLE_FW" ]; then
-    codesign "${SIGN_FLAGS[@]}" "$SPARKLE_FW/Versions/B/Autoupdate"
-    codesign "${SIGN_FLAGS[@]}" "$SPARKLE_FW/Versions/B/Updater.app"
+    sign "${SIGN_FLAGS[@]}" "$SPARKLE_FW/Versions/B/Autoupdate"
+    sign "${SIGN_FLAGS[@]}" "$SPARKLE_FW/Versions/B/Updater.app"
     for xpc in "$SPARKLE_FW"/Versions/B/XPCServices/*.xpc; do
       [ -e "$xpc" ] || continue
-      codesign "${SIGN_FLAGS[@]}" --preserve-metadata=entitlements "$xpc"
+      sign "${SIGN_FLAGS[@]}" --preserve-metadata=entitlements "$xpc"
     done
   fi
 
@@ -46,7 +60,7 @@ if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   # signing with it but without a profile would make macOS refuse to launch
   # the app.
   while IFS= read -r -d '' nested; do
-    codesign "${SIGN_FLAGS[@]}" "$nested"
+    sign "${SIGN_FLAGS[@]}" "$nested"
   done < <(find "$APP_PATH/Contents" -depth \( -name "*.dylib" -o -name "*.framework" \) -print0)
 
   # The Finder Sync extension must be sandboxed, so sign it with its
@@ -54,12 +68,12 @@ if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   # preserve).
   FINDER_APPEX="$APP_PATH/Contents/PlugIns/MistFinder.appex"
   if [ -d "$FINDER_APPEX" ]; then
-    codesign "${SIGN_FLAGS[@]}" \
+    sign "${SIGN_FLAGS[@]}" \
       --entitlements "$REPO_ROOT/MistFinder/MistFinder.entitlements" \
       "$FINDER_APPEX"
   fi
 
-  codesign "${SIGN_FLAGS[@]}" "$APP_PATH"
+  sign "${SIGN_FLAGS[@]}" "$APP_PATH"
 else
   echo "CODESIGN_IDENTITY not set; using ad-hoc signature"
   codesign --force --deep --sign - "$APP_PATH"
@@ -117,7 +131,7 @@ ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$OUTPUT_ZIP"
 rm -f "$OUTPUT_DMG"
 hdiutil create -volname "Mist" -srcfolder "$APP_PATH" -ov -format UDZO "$OUTPUT_DMG"
 if [ -n "${CODESIGN_IDENTITY:-}" ]; then
-  codesign --sign "$CODESIGN_IDENTITY" --timestamp "$OUTPUT_DMG"
+  sign --sign "$CODESIGN_IDENTITY" --timestamp "$OUTPUT_DMG"
 fi
 if [ "$HAVE_NOTARY_CREDS" = 1 ]; then
   notarize "$OUTPUT_DMG"
