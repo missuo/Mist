@@ -1,7 +1,7 @@
 # Finder Extension
 
 Mist ships a Finder Sync extension (`MistFinder.appex`) that adds
-**Upload to Mist** directly to Finder's right-click menu — no digging
+**Upload via Mist** directly to Finder's right-click menu — no digging
 through the Services submenu.
 
 ## Enabling
@@ -13,7 +13,7 @@ through the Services submenu.
 3. Enable **MistFinder** under Finder extensions
 
 After enabling, right-click any file in Finder and choose
-**Upload to Mist**. Multiple selections upload as a batch, and the
+**Upload via Mist**. Multiple selections upload as a batch, and the
 resulting URLs are copied to the clipboard in your configured output
 format.
 

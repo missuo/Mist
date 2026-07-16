@@ -68,7 +68,7 @@ Save path templates support:
 
 Drag one or more files onto the Mist menu bar icon. Mist uploads them and copies the resulting URL or URLs to the clipboard.
 
-Finder integration: enable the **MistFinder** extension in System Settings -> General -> Login Items & Extensions -> Extensions, then right-click any file in Finder and choose **Upload to Mist**. See [docs/finder-extension.md](docs/finder-extension.md) for details.
+Finder integration: enable the **MistFinder** extension in System Settings -> General -> Login Items & Extensions -> Extensions, then right-click any file in Finder and choose **Upload via Mist**. See [docs/finder-extension.md](docs/finder-extension.md) for details.
 
 URL scheme:
 

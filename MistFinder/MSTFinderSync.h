@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Finder Sync extension that adds "Upload to Mist" directly to Finder's
+/// Finder Sync extension that adds "Upload via Mist" directly to Finder's
 /// context menu. Selected files are handed to the main app through the
 /// mist:// URL scheme.
 @interface MSTFinderSync : FIFinderSync

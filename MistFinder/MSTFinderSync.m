@@ -29,11 +29,11 @@
   }
 
   NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
-  NSMenuItem *item = [menu addItemWithTitle:@"Upload to Mist"
+  NSMenuItem *item = [menu addItemWithTitle:@"Upload via Mist"
                                      action:@selector(uploadToMist:)
                               keyEquivalent:@""];
   item.image = [NSImage imageWithSystemSymbolName:@"cloud.fill"
-                         accessibilityDescription:@"Upload to Mist"];
+                         accessibilityDescription:@"Upload via Mist"];
   return menu;
 }
 
