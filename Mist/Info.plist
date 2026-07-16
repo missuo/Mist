@@ -17,5 +17,13 @@
 	</array>
 	<key>NSServicesMenuRequestTimeout</key>
 	<integer>10000</integer>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/missuo/Mist/main/docs/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>RHEhllstUuuVrVDCPGrbhg/8LivSzpuZB9X3u3xdV5o=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>21600</integer>
 </dict>
 </plist>

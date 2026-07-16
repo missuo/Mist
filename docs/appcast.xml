@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.sparkle-project.org/xml/rss" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Mist</title>
+    <description>Most recent updates for Mist</description>
+    <language>en</language>
+  </channel>
+</rss>

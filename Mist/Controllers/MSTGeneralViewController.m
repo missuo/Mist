@@ -40,7 +40,7 @@
 - (instancetype)init {
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
-    self.preferredContentSize = NSMakeSize(500, 560);
+    self.preferredContentSize = NSMakeSize(500, 580);
   }
   return self;
 }
@@ -50,7 +50,7 @@
 }
 
 - (void)loadView {
-  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, 560)];
+  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 500, 580)];
 }
 
 - (void)viewDidLoad {
@@ -174,7 +174,24 @@
   self.shortLinkSaveButton.target = self;
   self.shortLinkSaveButton.action = @selector(shortLinkSave:);
   [self.view addSubview:self.shortLinkSaveButton];
-  y -= 30;
+  y -= 22;
+
+  // Where to get an API token
+  NSButton *apiTokenLink =
+      [NSButton buttonWithTitle:@"Get an API Token at s.ee/user/developers"
+                         target:self
+                         action:@selector(openSEEDeveloperPage:)];
+  apiTokenLink.bordered = NO;
+  apiTokenLink.attributedTitle = [[NSAttributedString alloc]
+      initWithString:apiTokenLink.title
+          attributes:@{
+            NSForegroundColorAttributeName : [NSColor linkColor],
+            NSFontAttributeName : [NSFont systemFontOfSize:11],
+          }];
+  [apiTokenLink sizeToFit];
+  [apiTokenLink setFrameOrigin:NSMakePoint(padding + labelWidth + 10, y)];
+  [self.view addSubview:apiTokenLink];
+  y -= 26;
 
   NSTextField *domainLabel = [[NSTextField alloc]
       initWithFrame:NSMakeRect(padding, y + 2, labelWidth, 18)];
@@ -363,6 +380,11 @@
 
 - (void)shortLinkAPIKeyChanged:(id)sender {
   self.shortLinkSaveButton.enabled = self.shortLinkAPIKeyField.stringValue.length > 0;
+}
+
+- (void)openSEEDeveloperPage:(id)sender {
+  [[NSWorkspace sharedWorkspace]
+      openURL:[NSURL URLWithString:@"https://s.ee/user/developers"]];
 }
 
 - (void)shortLinkSave:(id)sender {

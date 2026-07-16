@@ -13,12 +13,14 @@
 #import "MSTS3Uploader.h"
 #import "MSTShortLinkService.h"
 #import "MSTUploadHistoryManager.h"
+#import <Sparkle/Sparkle.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <UserNotifications/UserNotifications.h>
 
 @interface MSTAppDelegate () <NSDraggingDestination, NSMenuDelegate,
                               UNUserNotificationCenterDelegate>
 
+@property(nonatomic, strong) SPUStandardUpdaterController *updaterController;
 @property(nonatomic, strong) NSStatusItem *statusItem;
 @property(nonatomic, strong) NSMenu *statusMenu;
 @property(nonatomic, strong) NSProgressIndicator *progressIndicator;
@@ -49,6 +51,12 @@ static MSTAppDelegate *_shared = nil;
   
   NSLog(@"[Mist] Application did finish launching");
   NSLog(@"[Mist] Bundle identifier: %@", [[NSBundle mainBundle] bundleIdentifier]);
+
+  // Sparkle updater (feed URL and public key come from Info.plist)
+  self.updaterController =
+      [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
+                                                    updaterDelegate:nil
+                                                 userDriverDelegate:nil];
 
   [self setupMainMenu];
   [self setupStatusBar];
@@ -256,6 +264,12 @@ static MSTAppDelegate *_shared = nil;
   [appMenu addItemWithTitle:@"About Mist"
                      action:@selector(orderFrontStandardAboutPanel:)
               keyEquivalent:@""];
+  NSMenuItem *appUpdateItem =
+      [[NSMenuItem alloc] initWithTitle:@"Check for Updates..."
+                                 action:@selector(checkForUpdates:)
+                          keyEquivalent:@""];
+  appUpdateItem.target = self.updaterController;
+  [appMenu addItem:appUpdateItem];
   [appMenu addItem:[NSMenuItem separatorItem]];
   [appMenu addItemWithTitle:@"Hide Mist"
                      action:@selector(hide:)
@@ -460,6 +474,14 @@ static MSTAppDelegate *_shared = nil;
                           keyEquivalent:@","];
   prefsItem.target = self;
   [self.statusMenu addItem:prefsItem];
+
+  // Check for updates (Sparkle)
+  NSMenuItem *updateItem =
+      [[NSMenuItem alloc] initWithTitle:@"Check for Updates..."
+                                 action:@selector(checkForUpdates:)
+                          keyEquivalent:@""];
+  updateItem.target = self.updaterController;
+  [self.statusMenu addItem:updateItem];
 
   [self.statusMenu addItem:[NSMenuItem separatorItem]];
 

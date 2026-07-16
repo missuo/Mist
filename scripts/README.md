@@ -106,7 +106,7 @@ APP_PASSWORD="${MIST_NOTARIZATION_PASSWORD}"
 # 一次性设置
 xcrun notarytool store-credentials "mist-notarization" \
     --apple-id "your-email@example.com" \
-    --team-id "ZDY6H3JN3N" \
+    --team-id "NCFNX3LJ83" \
     --password "xxxx-xxxx-xxxx-xxxx"
 
 # 在脚本中使用
@@ -139,7 +139,7 @@ spctl --assess --type execute --verbose=4 build/Release/Mist.app
 # 从公证提交时获取的 ID
 xcrun notarytool log <submission-id> \
     --apple-id "your-email@example.com" \
-    --team-id "ZDY6H3JN3N" \
+    --team-id "NCFNX3LJ83" \
     --password "xxxx-xxxx-xxxx-xxxx"
 ```
 

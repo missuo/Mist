@@ -68,6 +68,16 @@
   return [self.mutableHostConfigs copy];
 }
 
+- (void)setCompressFactor:(NSInteger)compressFactor {
+  // Only 10-90 enables compression. Anything else means off — this also
+  // neutralizes the legacy default of 100 that old builds persisted to
+  // UserDefaults/iCloud, which used to cause an unintended re-encode.
+  if (compressFactor < 10 || compressFactor > 90) {
+    compressFactor = 0;
+  }
+  _compressFactor = compressFactor;
+}
+
 - (BOOL)iCloudSyncEnabled {
   return self.iCloudSyncManager.iCloudSyncEnabled;
 }

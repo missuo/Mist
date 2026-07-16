@@ -96,7 +96,7 @@
   // Made with love message
   NSTextField *madeWithLabel = [[NSTextField alloc]
       initWithFrame:NSMakeRect(0, 38, self.view.bounds.size.width, 16)];
-  madeWithLabel.stringValue = @"Made with ❤️ from SF";
+  madeWithLabel.stringValue = @"Made with 💙 from SF";
   madeWithLabel.font = [NSFont systemFontOfSize:10];
   madeWithLabel.textColor = [NSColor tertiaryLabelColor];
   madeWithLabel.alignment = NSTextAlignmentCenter;

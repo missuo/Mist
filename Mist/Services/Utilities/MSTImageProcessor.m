@@ -31,7 +31,9 @@
   }
 
   MSTConfigManager *config = [MSTConfigManager sharedManager];
-  BOOL shouldCompress = config.compressFactor > 0;
+  // compressFactor is normalized by MSTConfigManager (0 or 10-90); guard the
+  // valid range here too so a stray value can never trigger a re-encode.
+  BOOL shouldCompress = config.compressFactor >= 10 && config.compressFactor <= 90;
   BOOL shouldRemoveEXIF = config.removeEXIF;
 
   if (!shouldCompress && !shouldRemoveEXIF) {
@@ -116,7 +118,7 @@
 
   NSData *processedData = nil;
   CGFloat compressionFactor = config.compressFactor / 100.0;
-  BOOL applyCompression = (shouldCompress && config.compressFactor >= 10 && config.compressFactor <= 90);
+  BOOL applyCompression = shouldCompress;
 
   if (useImageIO && uti) {
     NSMutableData *outputData = [NSMutableData data];

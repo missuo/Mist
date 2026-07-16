@@ -3,13 +3,17 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
 
+env:
+  SPARKLE_VERSION: 2.9.4
+
 jobs:
   build:
+    name: Build, sign, and notarize
     runs-on: macos-latest
 
     steps:
@@ -21,118 +25,131 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Install certificate
+      - name: Import Developer ID certificate
         env:
-          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
-          # Create temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          set -euo pipefail
+          CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+
+          echo -n "$CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Import certificate
-          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
-          echo -n "$CERTIFICATE_P12" | base64 --decode -o "$CERTIFICATE_PATH"
-
           security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH"
+
+          echo "CODESIGN_IDENTITY=Developer ID Application" >> "$GITHUB_ENV"
+
+      - name: Set up Sparkle signing
+        env:
+          SPARKLE_ED25519_PUBLIC_KEY: ${{ secrets.SPARKLE_ED25519_PUBLIC_KEY }}
+          SPARKLE_ED25519_PRIVATE_KEY: ${{ secrets.SPARKLE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          curl -fL "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" \
+            -o "$RUNNER_TEMP/sparkle.tar.xz"
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+          xattr -dr com.apple.quarantine "$RUNNER_TEMP/sparkle" || true
+
+          KEY_FILE="$RUNNER_TEMP/sparkle_ed25519.key"
+          printf '%s' "$SPARKLE_ED25519_PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $SPARKLE_ED25519_PUBLIC_KEY" Mist/Info.plist
+
+          echo "SPARKLE_BIN=$RUNNER_TEMP/sparkle/bin" >> "$GITHUB_ENV"
+          echo "SPARKLE_PRIVATE_KEY_FILE=$KEY_FILE" >> "$GITHUB_ENV"
 
       - name: Build app
+        # Signing is disabled here: the runner has no Xcode account, so
+        # automatic signing cannot fetch provisioning profiles. package-app.sh
+        # signs everything with the Developer ID certificate afterwards.
         run: |
           xcodebuild clean build \
             -project Mist.xcodeproj \
             -scheme Mist \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_STYLE=Automatic \
-            DEVELOPMENT_TEAM="ZDY6H3JN3N"
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Re-sign with Developer ID
-        run: |
-          APP_PATH="build/Build/Products/Release/Mist.app"
-          IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
-
-          # Sign the main app
-          codesign --force --options runtime \
-            --sign "$IDENTITY" \
-            --timestamp \
-            --deep \
-            "$APP_PATH"
-
-          # Verify signature
-          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-
-      - name: Create ZIP for notarization
-        run: |
-          cd build/Build/Products/Release
-          ditto -c -k --keepParent Mist.app Mist.zip
-
-      - name: Notarize app
+      - name: Sign, notarize, and package
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          TEAM_ID: ZDY6H3JN3N
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit build/Build/Products/Release/Mist.zip \
-            --apple-id "$APPLE_ID" \
-            --team-id "$TEAM_ID" \
-            --password "$APP_PASSWORD" \
-            --wait
+          .github/scripts/package-app.sh \
+            "build/Build/Products/Release/Mist.app" \
+            "Mist.zip" \
+            "Mist.dmg"
 
-      - name: Staple app
-        run: |
-          xcrun stapler staple build/Build/Products/Release/Mist.app
-
-      - name: Create DMG
-        run: |
-          APP_PATH="build/Build/Products/Release/Mist.app"
-          DMG_PATH="build/Build/Products/Release/Mist.dmg"
-          IDENTITY="Developer ID Application: OwO Network, LLC (ZDY6H3JN3N)"
-
-          # Create DMG
-          hdiutil create -volname "Mist" \
-            -srcfolder "$APP_PATH" \
-            -ov -format UDZO \
-            "$DMG_PATH"
-
-          # Sign DMG
-          codesign --sign "$IDENTITY" --timestamp "$DMG_PATH"
-
-      - name: Notarize DMG
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          TEAM_ID: ZDY6H3JN3N
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
-        run: |
-          xcrun notarytool submit build/Build/Products/Release/Mist.dmg \
-            --apple-id "$APPLE_ID" \
-            --team-id "$TEAM_ID" \
-            --password "$APP_PASSWORD" \
-            --wait
-
-          xcrun stapler staple build/Build/Products/Release/Mist.dmg
-
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Upload Sparkle metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sparkle-metadata
+          path: Mist.zip.sparkle.json
+          if-no-files-found: error
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.version.outputs.VERSION }}
+          name: ${{ github.ref_name }}
           draft: false
           prerelease: false
           files: |
-            build/Build/Products/Release/Mist.dmg
+            Mist.dmg
+            Mist.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cleanup keychain
+      - name: Clean up signing material
         if: always()
         run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+          security delete-keychain "$RUNNER_TEMP/build.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/sparkle_ed25519.key"
+
+  appcast:
+    name: Update Sparkle appcast
+    needs: build
+    runs-on: ubuntu-latest
+    # Skip prerelease tags (e.g. v1.1.0-beta.1) so they never reach the feed.
+    if: ${{ !contains(github.ref_name, '-') }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download Sparkle metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: sparkle-metadata
+          path: dist
+
+      - name: Update appcast on main
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/update-appcast.py \
+            --tag "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --dist dist
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          if git diff --cached --quiet; then
+            echo "No appcast changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(release): update appcast for ${GITHUB_REF_NAME}"
+          git pull --rebase origin main
+          git push origin HEAD:main
