@@ -56,9 +56,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Temporary icon file (untracked)
-Mist/Resources/AppIcon.png
-
 # AI Agents
 GEMINI.md
 .gemini/
