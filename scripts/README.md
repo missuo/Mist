@@ -39,7 +39,7 @@ export APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"   # app-specific password
 
 > Releases are normally published by CI: push a `v*` tag and
 > `.github/workflows/release.yml` does all of the above plus the GitHub
-> Release and Sparkle appcast update. See [docs/signing.md](../docs/signing.md).
+> Release and Sparkle appcast update.
 
 ## Security Best Practices
 
@@ -81,6 +81,3 @@ xcrun notarytool log <submission-id> \
     --team-id "NCFNX3LJ83" \
     --password "xxxx-xxxx-xxxx-xxxx"
 ```
-
-For the full signing and notarization guide, see
-[docs/signing.md](../docs/signing.md).
