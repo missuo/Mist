@@ -14,7 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, readonly) NSString *identifier;
 @property (nonatomic, copy) NSString *filename;
 @property (nonatomic, copy) NSString *url;
-@property (nonatomic, copy, nullable) NSString *shortURL;
 @property (nonatomic, copy) NSString *hostName;
 @property (nonatomic, copy) NSString *hostIdentifier;
 @property (nonatomic, strong) NSDate *uploadDate;

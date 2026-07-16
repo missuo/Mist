@@ -11,7 +11,6 @@
 #import "MSTPreferencesWindowController.h"
 #import "MSTS3HostConfig.h"
 #import "MSTS3Uploader.h"
-#import "MSTShortLinkService.h"
 #import "MSTUploadHistoryManager.h"
 #import <Sparkle/Sparkle.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
@@ -34,7 +33,6 @@
 @property(nonatomic, strong, nullable) NSMutableArray<NSString *> *batchUploadURLs;
 @property(nonatomic, assign) NSInteger batchUploadTotal;
 @property(nonatomic, assign) NSInteger batchUploadCompleted;
-@property(nonatomic, strong) MSTShortLinkService *shortLinkService;
 
 @end
 
@@ -63,8 +61,7 @@ static MSTAppDelegate *_shared = nil;
   [self setupMenu];
   [self registerNotifications];
   [self requestNotificationPermission];
-  self.shortLinkService = [[MSTShortLinkService alloc] init];
-  
+
   // Register for URL events
   NSLog(@"[Mist] Registering URL event handler");
   [[NSAppleEventManager sharedAppleEventManager]
@@ -152,19 +149,10 @@ static MSTAppDelegate *_shared = nil;
            completion:^(NSString *resultURL, NSError *error) {
              dispatch_async(dispatch_get_main_queue(), ^{
                if (resultURL) {
-                 [self maybeShortenURL:resultURL
-                                forHost:config
-                             completion:^(NSString *finalURL) {
-                               if (finalURL) {
-                                 [self.batchUploadURLs addObject:finalURL];
-                               }
-                               self.batchUploadCompleted++;
-                               [self checkBatchUploadCompletion];
-                             }];
-               } else {
-                 self.batchUploadCompleted++;
-                 [self checkBatchUploadCompletion];
+                 [self.batchUploadURLs addObject:resultURL];
                }
+               self.batchUploadCompleted++;
+               [self checkBatchUploadCompletion];
              });
            }];
 }
@@ -212,46 +200,6 @@ static MSTAppDelegate *_shared = nil;
     self.batchUploadTotal = 0;
     self.batchUploadCompleted = 0;
   }
-}
-
-- (void)maybeShortenURL:(NSString *)url
-                 forHost:(MSTS3HostConfig *)host
-              completion:(void (^)(NSString *finalURL))completion {
-  MSTConfigManager *manager = [MSTConfigManager sharedManager];
-
-  NSLog(@"[Mist] maybeShortenURL called: shortLinkEnabled=%d, apiKeyLength=%lu, url=%@",
-        host.shortLinkEnabled, (unsigned long)manager.shortLinkAPIKey.length, url);
-
-  if (!host.shortLinkEnabled || manager.shortLinkAPIKey.length == 0) {
-    NSLog(@"[Mist] Short link skipped: enabled=%d, hasAPIKey=%d",
-          host.shortLinkEnabled, manager.shortLinkAPIKey.length > 0);
-    if (completion) {
-      completion(url);
-    }
-    return;
-  }
-
-  NSString *domain = manager.shortLinkDefaultDomain.length > 0
-                         ? manager.shortLinkDefaultDomain
-                         : @"s.ee";
-
-  NSLog(@"[Mist] Creating short link with domain=%@", domain);
-
-  [self.shortLinkService createShortURLForURL:url
-                                        domain:domain
-                                         apiKey:manager.shortLinkAPIKey
-                                     completion:^(NSString *shortURL,
-                                                  NSError *error) {
-                                       if (error) {
-                                         NSLog(@"[Mist] Short link failed: %@",
-                                               error.localizedDescription);
-                                       } else {
-                                         NSLog(@"[Mist] Short link created: %@", shortURL);
-                                       }
-                                       if (completion) {
-                                         completion(shortURL ?: url);
-                                       }
-                                     }];
 }
 
 - (void)setupMainMenu {
@@ -636,7 +584,6 @@ static MSTAppDelegate *_shared = nil;
 
       [[MSTUploadHistoryManager sharedManager] addHistoryItemWithFilename:filename ?: @"Unknown"
                                                                       url:url
-                                                                 shortURL:nil
                                                                hostConfig:hostConfig
                                                                  fileSize:fileSize.unsignedIntegerValue
                                                                  mimeType:nil

@@ -21,7 +21,6 @@ extern NSString * const MSTUploadHistoryDidChangeNotification;
 
 - (void)addHistoryItemWithFilename:(NSString *)filename
                                url:(NSString *)url
-                          shortURL:(nullable NSString *)shortURL
                         hostConfig:(MSTS3HostConfig *)hostConfig
                           fileSize:(NSUInteger)fileSize
                           mimeType:(nullable NSString *)mimeType

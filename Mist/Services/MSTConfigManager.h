@@ -26,11 +26,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign, readonly) BOOL iCloudAvailable;
 @property (nonatomic, strong, readonly) MSTiCloudSyncManager *iCloudSyncManager;
 
-// Short links (s.ee)
-@property (nonatomic, copy) NSString *shortLinkAPIKey;
-@property (nonatomic, copy) NSString *shortLinkDefaultDomain;
-@property (nonatomic, copy) NSArray<NSString *> *shortLinkDomains;
-
 - (void)addHostConfig:(MSTS3HostConfig *)config;
 - (void)removeHostConfig:(MSTS3HostConfig *)config;
 - (void)updateHostConfig:(MSTS3HostConfig *)config;

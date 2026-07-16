@@ -124,7 +124,6 @@
   // Context menu
   NSMenu *contextMenu = [[NSMenu alloc] init];
   [contextMenu addItemWithTitle:@"Copy URL" action:@selector(copyURL:) keyEquivalent:@""];
-  [contextMenu addItemWithTitle:@"Copy Short URL" action:@selector(copyShortURL:) keyEquivalent:@""];
   [contextMenu addItem:[NSMenuItem separatorItem]];
   [contextMenu addItemWithTitle:@"Delete" action:@selector(deleteSelectedItem:) keyEquivalent:@""];
   self.tableView.menu = contextMenu;
@@ -177,8 +176,7 @@
   NSInteger row = self.tableView.clickedRow;
   if (row >= 0 && row < (NSInteger)self.historyItems.count) {
     MSTUploadHistoryItem *item = self.historyItems[row];
-    NSString *urlToCopy = item.shortURL ?: item.url;
-    [self copyStringToPasteboard:urlToCopy];
+    [self copyStringToPasteboard:item.url];
     [self showCopiedFeedback];
   }
 }
@@ -188,16 +186,6 @@
   if (row >= 0 && row < (NSInteger)self.historyItems.count) {
     MSTUploadHistoryItem *item = self.historyItems[row];
     [self copyStringToPasteboard:item.url];
-    [self showCopiedFeedback];
-  }
-}
-
-- (void)copyShortURL:(id)sender {
-  NSInteger row = self.tableView.clickedRow;
-  if (row >= 0 && row < (NSInteger)self.historyItems.count) {
-    MSTUploadHistoryItem *item = self.historyItems[row];
-    NSString *urlToCopy = item.shortURL ?: item.url;
-    [self copyStringToPasteboard:urlToCopy];
     [self showCopiedFeedback];
   }
 }
@@ -226,11 +214,6 @@
   NSInteger row = self.tableView.clickedRow;
   if (row < 0 || row >= (NSInteger)self.historyItems.count) {
     return NO;
-  }
-
-  if (menuItem.action == @selector(copyShortURL:)) {
-    MSTUploadHistoryItem *item = self.historyItems[row];
-    return item.shortURL.length > 0 || item.url.length > 0;
   }
 
   return YES;
@@ -307,7 +290,7 @@
     textField.font = [NSFont systemFontOfSize:12 weight:NSFontWeightMedium];
     textField.textColor = [NSColor labelColor];
   } else if ([identifier isEqualToString:@"url"]) {
-    textField.stringValue = item.shortURL ?: item.url ?: @"";
+    textField.stringValue = item.url ?: @"";
     textField.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
     textField.textColor = [NSColor linkColor];
   } else if ([identifier isEqualToString:@"host"]) {

@@ -1,5 +1,5 @@
 //
-//  MSTSMSProvider.h
+//  MSTSEEProvider.h
 //  Mist
 //
 //  Created by Vincent Yang on 12/15/25.
@@ -10,8 +10,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Provider for SM.MS image hosting service
-@interface MSTSMSProvider : NSObject <MSTUploadProvider>
+/// Provider for S.EE file hosting service (https://s.ee)
+@interface MSTSEEProvider : NSObject <MSTUploadProvider>
 
 @end
 

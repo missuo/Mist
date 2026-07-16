@@ -442,8 +442,8 @@
     name = [name stringByAppendingString:@" ★"];
   }
   nameField.stringValue = name;
-  if (config.providerType == MSTS3ProviderTypeSMMS) {
-    bucketField.stringValue = @"SM.MS";
+  if (config.providerType == MSTS3ProviderTypeSEE) {
+    bucketField.stringValue = @"S.EE";
   } else {
     bucketField.stringValue =
         config.bucket.length > 0 ? config.bucket : @"(not configured)";
@@ -464,8 +464,8 @@
     return @"backblaze";
   case MSTS3ProviderTypeMinIO:
     return @"minio";
-  case MSTS3ProviderTypeSMMS:
-    return @"sm.ms";
+  case MSTS3ProviderTypeSEE:
+    return @"s.ee";
   case MSTS3ProviderTypeCustom:
   default:
     return @"custom";

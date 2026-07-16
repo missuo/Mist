@@ -165,7 +165,7 @@
     return @[ [[MSTS3Region alloc] initWithIdentifier:@"us-east-1"
                                           displayName:@"US East 1 (Default)"] ];
 
-  case MSTS3ProviderTypeSMMS:
+  case MSTS3ProviderTypeSEE:
     return @[];
   }
   return @[];
@@ -185,8 +185,8 @@
     return @"MinIO";
   case MSTS3ProviderTypeCustom:
     return @"Generic S3";
-  case MSTS3ProviderTypeSMMS:
-    return @"SM.MS";
+  case MSTS3ProviderTypeSEE:
+    return @"S.EE";
   }
   return @"Unknown";
 }
@@ -205,7 +205,7 @@
     return @"us-east-1";
   case MSTS3ProviderTypeCustom:
     return @"us-east-1";
-  case MSTS3ProviderTypeSMMS:
+  case MSTS3ProviderTypeSEE:
     return @"";
   }
   return @"us-east-1";

@@ -8,7 +8,7 @@
 #import "MSTProviderFactory.h"
 #import "MSTS3HostConfig.h"
 #import "MSTS3Provider.h"
-#import "MSTSMSProvider.h"
+#import "MSTSEEProvider.h"
 
 @implementation MSTProviderFactory
 
@@ -18,8 +18,8 @@
 
 + (id<MSTUploadProvider>)providerForType:(MSTS3ProviderType)type {
   switch (type) {
-    case MSTS3ProviderTypeSMMS:
-      return [[MSTSMSProvider alloc] init];
+    case MSTS3ProviderTypeSEE:
+      return [[MSTSEEProvider alloc] init];
 
     case MSTS3ProviderTypeAmazonS3:
     case MSTS3ProviderTypeWasabi:

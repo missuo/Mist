@@ -14,9 +14,6 @@ NSString * const kMSTDefaultHostId = @"Mist_DefaultHostId";
 NSString * const kMSTOutputFormat = @"Mist_OutputFormat";
 NSString * const kMSTCompressFactor = @"Mist_CompressFactor";
 NSString * const kMSTRemoveEXIF = @"Mist_RemoveEXIF";
-NSString * const kMSTShortLinkAPIKey = @"Mist_ShortLinkAPIKey";
-NSString * const kMSTShortLinkDefaultDomain = @"Mist_ShortLinkDefaultDomain";
-NSString * const kMSTShortLinkDomains = @"Mist_ShortLinkDomains";
 NSString * const kMSTAppGroupIdentifier = @"group.nz.owo.Mist";
 
 #pragma mark - Notifications

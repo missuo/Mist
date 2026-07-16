@@ -1,29 +1,29 @@
 //
-//  MSTSMSProvider.m
+//  MSTSEEProvider.m
 //  Mist
 //
 //  Created by Vincent Yang on 12/15/25.
 //
 
-#import "MSTSMSProvider.h"
+#import "MSTSEEProvider.h"
 #import "MSTS3HostConfig.h"
 #import "MSTUploadUtilities.h"
 
-@implementation MSTSMSProvider
+@implementation MSTSEEProvider
 
 + (NSString *)providerName {
-  return @"SM.MS";
+  return @"S.EE";
 }
 
 #pragma mark - MSTUploadProvider
 
 - (BOOL)validateConfig:(MSTS3HostConfig *)config error:(NSError **)error {
-  if (config.smmsToken.length == 0) {
+  if (config.seeToken.length == 0) {
     if (error) {
       *error = [NSError
           errorWithDomain:@"MSTUploaderError"
                      code:-4
-                 userInfo:@{NSLocalizedDescriptionKey : @"Invalid SM.MS token"}];
+                 userInfo:@{NSLocalizedDescriptionKey : @"Invalid S.EE token"}];
     }
     return NO;
   }
@@ -41,15 +41,13 @@
   NSString *boundary = [NSString stringWithFormat:@"Boundary-%@",
                                                   [[NSUUID UUID] UUIDString]];
 
-  NSURL *url = [NSURL URLWithString:@"https://smms.app/api/v2/upload"];
+  NSURL *url = [NSURL URLWithString:@"https://s.ee/api/v1/file/upload"];
   NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
   request.HTTPMethod = @"POST";
   [request setValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@",
                                                boundary]
       forHTTPHeaderField:@"Content-Type"];
-  [request setValue:@"https://sm.ms/" forHTTPHeaderField:@"referer"];
-  [request setValue:@"https://sm.ms" forHTTPHeaderField:@"origin"];
-  [request setValue:config.smmsToken forHTTPHeaderField:@"Authorization"];
+  [request setValue:config.seeToken forHTTPHeaderField:@"Authorization"];
 
   NSMutableData *body = [NSMutableData data];
   NSString *lineBreak = @"\r\n";
@@ -57,7 +55,7 @@
                         dataUsingEncoding:NSUTF8StringEncoding]];
   NSString *disposition =
       [NSString stringWithFormat:
-                    @"Content-Disposition: form-data; name=\"smfile\"; filename=\"%@\"%@",
+                    @"Content-Disposition: form-data; name=\"file\"; filename=\"%@\"%@",
                     filename, lineBreak];
   [body appendData:[disposition dataUsingEncoding:NSUTF8StringEncoding]];
   NSString *typeLine =
@@ -97,13 +95,13 @@
                        return;
                      }
 
-                     NSError *jsonError = nil;
+                     NSError *parseError = nil;
                      NSString *urlString =
-                         [self parseSmmsURLFromResponse:responseData
-                                                  error:&jsonError];
+                         [self parseSEEDirectURLFromResponse:responseData
+                                                       error:&parseError];
 
                      if (!urlString) {
-                       NSError *finalError = jsonError ?: [NSError
+                       NSError *finalError = parseError ?: [NSError
                            errorWithDomain:@"MSTUploaderError"
                                       code:-5
                                   userInfo:@{NSLocalizedDescriptionKey : @"Upload failed"}];
@@ -119,8 +117,8 @@
 
 #pragma mark - Response Parsing
 
-- (nullable NSString *)parseSmmsURLFromResponse:(NSData *)responseData
-                                          error:(NSError **)error {
+- (nullable NSString *)parseSEEDirectURLFromResponse:(NSData *)responseData
+                                                error:(NSError **)error {
   if (!responseData) {
     if (error) {
       *error = [NSError errorWithDomain:@"MSTUploaderError"
@@ -138,41 +136,41 @@
   }
 
   NSDictionary *json = (NSDictionary *)jsonObj;
-  BOOL success = [json[@"success"] boolValue] || [json[@"success"] intValue] == 1;
+  NSNumber *codeValue = json[@"code"];
+  BOOL success = (!codeValue || codeValue.integerValue == 0 ||
+                  codeValue.integerValue == 200);
 
   if (!success) {
-    NSString *code = [json[@"code"] isKindOfClass:[NSString class]] ? json[@"code"] : @"";
-    if ([code isEqualToString:@"image_repeated"]) {
-      NSString *repeatedURL = [json[@"images"] isKindOfClass:[NSString class]] ? json[@"images"] : nil;
-      if (repeatedURL.length > 0) {
-        return repeatedURL;
-      }
-    }
-
     NSString *message =
         [json[@"message"] isKindOfClass:[NSString class]] ? json[@"message"]
-                                                         : @"Upload failed";
+                                                          : @"Upload failed";
     if (error) {
       *error = [NSError errorWithDomain:@"MSTUploaderError"
-                                   code:-7
+                                   code:codeValue.integerValue
                                userInfo:@{NSLocalizedDescriptionKey : message}];
     }
     return nil;
   }
 
   id data = json[@"data"];
-  NSString *url = nil;
-  if ([data isKindOfClass:[NSDictionary class]]) {
-    url = ((NSDictionary *)data)[@"url"];
+  if (![data isKindOfClass:[NSDictionary class]]) {
+    if (error) {
+      *error = [NSError errorWithDomain:@"MSTUploaderError"
+                                   code:-8
+                               userInfo:@{NSLocalizedDescriptionKey : @"Invalid S.EE response"}];
+    }
+    return nil;
   }
-  if ([url isKindOfClass:[NSString class]] && url.length > 0) {
-    return url;
+
+  NSString *directURL = ((NSDictionary *)data)[@"url"];
+  if ([directURL isKindOfClass:[NSString class]] && directURL.length > 0) {
+    return directURL;
   }
 
   if (error) {
     *error = [NSError errorWithDomain:@"MSTUploaderError"
                                  code:-8
-                             userInfo:@{NSLocalizedDescriptionKey : @"Invalid SM.MS response"}];
+                             userInfo:@{NSLocalizedDescriptionKey : @"Invalid S.EE response"}];
   }
   return nil;
 }

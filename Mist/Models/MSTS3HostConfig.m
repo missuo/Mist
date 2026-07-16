@@ -44,12 +44,11 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
     _bucket = @"";
     _accessKey = @"";
     _secretKey = @"";
-    _smmsToken = @"";
+    _seeToken = @"";
     _urlPrefix = @"";
     _saveKeyPath = @"{filename}.{ext}";
     _acl = @"public-read";
     _useHTTPS = YES;
-    _shortLinkEnabled = NO;
     _isDefault = NO;
   }
   return self;
@@ -71,8 +70,10 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
       _accessKey = MSTSanitizeConfigString(dict[@"accessKey"]);
     if (dict[@"secretKey"])
       _secretKey = MSTSanitizeConfigString(dict[@"secretKey"]);
-    if (dict[@"smmsToken"])
-      _smmsToken = dict[@"smmsToken"];
+    if (dict[@"seeToken"])
+      _seeToken = dict[@"seeToken"];
+    else if (dict[@"smmsToken"])
+      _seeToken = dict[@"smmsToken"];
     // Support both new urlPrefix and legacy domain key
     if (dict[@"urlPrefix"])
       _urlPrefix = MSTSanitizeConfigString(dict[@"urlPrefix"]);
@@ -84,8 +85,6 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
       _acl = dict[@"acl"];
     if (dict[@"useHTTPS"] != nil)
       _useHTTPS = [dict[@"useHTTPS"] boolValue];
-    if (dict[@"shortLinkEnabled"])
-      _shortLinkEnabled = [dict[@"shortLinkEnabled"] boolValue];
     if (dict[@"providerType"])
       _providerType = [dict[@"providerType"] integerValue];
     else if (dict[@"isCustomEndpoint"] && [dict[@"isCustomEndpoint"] boolValue])
@@ -107,12 +106,11 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
   [coder encodeObject:_bucket forKey:@"bucket"];
   [coder encodeObject:_accessKey forKey:@"accessKey"];
   [coder encodeObject:_secretKey forKey:@"secretKey"];
-  [coder encodeObject:_smmsToken forKey:@"smmsToken"];
+  [coder encodeObject:_seeToken forKey:@"seeToken"];
   [coder encodeObject:_urlPrefix forKey:@"urlPrefix"];
   [coder encodeObject:_saveKeyPath forKey:@"saveKeyPath"];
   [coder encodeObject:_acl forKey:@"acl"];
   [coder encodeBool:_useHTTPS forKey:@"useHTTPS"];
-  [coder encodeBool:_shortLinkEnabled forKey:@"shortLinkEnabled"];
   [coder encodeBool:_isDefault forKey:@"isDefault"];
 }
 
@@ -137,8 +135,13 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
                                                               forKey:@"accessKey"] ?: @"");
     _secretKey = MSTSanitizeConfigString([coder decodeObjectOfClass:[NSString class]
                                                               forKey:@"secretKey"] ?: @"");
-    _smmsToken =
-        [coder decodeObjectOfClass:[NSString class] forKey:@"smmsToken"] ?: @"";
+    NSString *seeTokenValue =
+        [coder decodeObjectOfClass:[NSString class] forKey:@"seeToken"];
+    if (!seeTokenValue) {
+      seeTokenValue =
+          [coder decodeObjectOfClass:[NSString class] forKey:@"smmsToken"];
+    }
+    _seeToken = seeTokenValue ?: @"";
     // Support both new urlPrefix and legacy domain key
     NSString *urlPrefixValue = [coder decodeObjectOfClass:[NSString class] forKey:@"urlPrefix"];
     if (!urlPrefixValue) {
@@ -152,7 +155,6 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
                ?: @"public-read";
     // Default to YES for new configs and existing configs without this key
     _useHTTPS = [coder containsValueForKey:@"useHTTPS"] ? [coder decodeBoolForKey:@"useHTTPS"] : YES;
-    _shortLinkEnabled = [coder decodeBoolForKey:@"shortLinkEnabled"];
     _isDefault = [coder decodeBoolForKey:@"isDefault"];
   }
   return self;
@@ -170,12 +172,11 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
     @"bucket" : self.bucket ?: @"",
     @"accessKey" : self.accessKey ?: @"",
     @"secretKey" : self.secretKey ?: @"",
-    @"smmsToken" : self.smmsToken ?: @"",
+    @"seeToken" : self.seeToken ?: @"",
     @"urlPrefix" : self.urlPrefix ?: @"",
     @"saveKeyPath" : self.saveKeyPath ?: @"",
     @"acl" : self.acl ?: @"",
     @"useHTTPS" : @(self.useHTTPS),
-    @"shortLinkEnabled" : @(self.shortLinkEnabled),
     @"isDefault" : @(self.isDefault)
   };
 }
@@ -201,12 +202,11 @@ static NSString *MSTSanitizeConfigString(NSString *value) {
   copy.bucket = [self.bucket copy];
   copy.accessKey = [self.accessKey copy];
   copy.secretKey = [self.secretKey copy];
-  copy.smmsToken = [self.smmsToken copy];
+  copy.seeToken = [self.seeToken copy];
   copy.urlPrefix = [self.urlPrefix copy];
   copy.saveKeyPath = [self.saveKeyPath copy];
   copy.acl = [self.acl copy];
   copy.useHTTPS = self.useHTTPS;
-  copy.shortLinkEnabled = self.shortLinkEnabled;
   copy.isDefault = NO;
   return copy;
 }

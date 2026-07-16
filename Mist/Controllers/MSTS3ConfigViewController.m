@@ -42,6 +42,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 @property(nonatomic, strong) NSSecureTextField *secretKeyField;
 @property(nonatomic, strong) NSTextField *tokenLabel;
 @property(nonatomic, strong) NSSecureTextField *tokenField;
+@property(nonatomic, strong) NSButton *tokenHintButton;
 @property(nonatomic, strong) NSTextField *bucketLabel;
 @property(nonatomic, strong) NSTextField *accessKeyLabel;
 @property(nonatomic, strong) NSTextField *secretKeyLabel;
@@ -67,8 +68,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 @property(nonatomic, strong) NSButton *validateButton;
 @property(nonatomic, strong) NSButton *saveButton;
 @property(nonatomic, strong) NSTextField *statusLabel;
-@property(nonatomic, strong) NSButton *shortLinkCheckbox;
-@property(nonatomic, strong) NSTextField *shortLinkNoteLabel;
 
 @property(nonatomic, strong) NSView *emptyView;
 
@@ -78,8 +77,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 // Layout baselines
 @property(nonatomic, assign) NSRect baseTokenLabelFrame;
 @property(nonatomic, assign) NSRect baseTokenFieldFrame;
-@property(nonatomic, assign) NSRect baseShortLinkCheckboxFrame;
-@property(nonatomic, assign) NSRect baseShortLinkNoteFrame;
 @property(nonatomic, assign) NSRect baseSavePathLabelFrame;
 @property(nonatomic, assign) NSRect baseSaveKeyPathFieldFrame;
 @property(nonatomic, assign) NSRect basePathHintFrame;
@@ -166,7 +163,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.providerPopup = [[NSPopUpButton alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
   for (MSTS3ProviderType type = MSTS3ProviderTypeAmazonS3;
-       type <= MSTS3ProviderTypeSMMS; type++) {
+       type <= MSTS3ProviderTypeSEE; type++) {
     [self.providerPopup
         addItemWithTitle:[MSTS3Region displayNameForProvider:type]];
     self.providerPopup.lastItem.tag = type;
@@ -242,17 +239,33 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   [self.contentView addSubview:self.showSecretKeyButton];
   y -= row;
 
-  // SM.MS Token
+  // S.EE Token
   self.tokenLabel = [self addLabel:@"Token:" atY:y];
   self.tokenField = [[NSSecureTextField alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
-  self.tokenField.placeholderString = @"SM.MS API token";
+  self.tokenField.placeholderString = @"S.EE API token";
   self.tokenField.font =
       [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
   self.tokenField.delegate = self;
   self.tokenLabel.hidden = YES;
   self.tokenField.hidden = YES;
   [self.contentView addSubview:self.tokenField];
+
+  // Where to get an S.EE API token (shown only for the S.EE provider)
+  self.tokenHintButton =
+      [NSButton buttonWithTitle:@"Get an API Token at s.ee/user/developers"
+                         target:self
+                         action:@selector(openSEEDeveloperPage:)];
+  self.tokenHintButton.bordered = NO;
+  self.tokenHintButton.attributedTitle = [[NSAttributedString alloc]
+      initWithString:self.tokenHintButton.title
+          attributes:@{
+            NSForegroundColorAttributeName : [NSColor linkColor],
+            NSFontAttributeName : [NSFont systemFontOfSize:11],
+          }];
+  [self.tokenHintButton sizeToFit];
+  self.tokenHintButton.hidden = YES;
+  [self.contentView addSubview:self.tokenHintButton];
   y -= row;
 
   // ACL
@@ -285,27 +298,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.useHTTPSCheckbox.state = NSControlStateValueOn;
   [self.contentView addSubview:self.useHTTPSCheckbox];
   y -= row;
-
-  // Short links
-  self.shortLinkCheckbox = [[NSButton alloc] initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 18)];
-  self.shortLinkCheckbox.title = @"Enable s.ee short links for this host";
-  [self.shortLinkCheckbox setButtonType:NSButtonTypeSwitch];
-  self.shortLinkCheckbox.target = self;
-  self.shortLinkCheckbox.action = @selector(shortLinkChanged:);
-  [self.contentView addSubview:self.shortLinkCheckbox];
-  y -= 18;
-
-  CGFloat noteY = y - 10; // add gap between checkbox and note
-  self.shortLinkNoteLabel = [[NSTextField alloc]
-      initWithFrame:NSMakeRect(fieldX + 19, noteY, fieldWidth - 19, 24)];
-  self.shortLinkNoteLabel.font = [NSFont systemFontOfSize:11];
-  self.shortLinkNoteLabel.textColor = [NSColor tertiaryLabelColor];
-  self.shortLinkNoteLabel.bezeled = NO;
-  self.shortLinkNoteLabel.drawsBackground = NO;
-  self.shortLinkNoteLabel.editable = NO;
-  self.shortLinkNoteLabel.selectable = NO;
-  [self.contentView addSubview:self.shortLinkNoteLabel];
-  y = noteY - row;
 
   // Save Path
   self.savePathLabel = [self addLabel:@"Save Path:" atY:y];
@@ -359,8 +351,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   // Capture baseline frames for dynamic layout adjustments
   self.baseTokenLabelFrame = self.tokenLabel.frame;
   self.baseTokenFieldFrame = self.tokenField.frame;
-  self.baseShortLinkCheckboxFrame = self.shortLinkCheckbox.frame;
-  self.baseShortLinkNoteFrame = self.shortLinkNoteLabel.frame;
   self.baseSavePathLabelFrame = self.savePathLabel.frame;
   self.baseSaveKeyPathFieldFrame = self.saveKeyPathField.frame;
   self.basePathHintFrame = self.pathHintLabel.frame;
@@ -443,14 +433,11 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.bucketField.stringValue = self.config.bucket ?: @"";
   self.accessKeyField.stringValue = self.config.accessKey ?: @"";
   self.secretKeyField.stringValue = self.config.secretKey ?: @"";
-  self.tokenField.stringValue = self.config.smmsToken ?: @"";
+  self.tokenField.stringValue = self.config.seeToken ?: @"";
   self.urlPrefixField.stringValue = self.config.urlPrefix ?: @"";
   self.saveKeyPathField.stringValue =
       self.config.saveKeyPath ?: @"{year}/{month}/{day}/{filename}.{ext}";
   self.useHTTPSCheckbox.state = self.config.useHTTPS ? NSControlStateValueOn : NSControlStateValueOff;
-
-  self.shortLinkCheckbox.state = self.config.shortLinkEnabled ? NSControlStateValueOn : NSControlStateValueOff;
-  [self updateShortLinkNote];
 
   // Region
   for (NSMenuItem *item in self.regionPopup.itemArray) {
@@ -510,8 +497,8 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   case MSTS3ProviderTypeMinIO:
     iconName = @"minio";
     break;
-  case MSTS3ProviderTypeSMMS:
-    iconName = @"sm.ms";
+  case MSTS3ProviderTypeSEE:
+    iconName = @"s.ee";
     break;
   case MSTS3ProviderTypeCustom:
   default:
@@ -539,7 +526,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   case MSTS3ProviderTypeCustom:
     placeholder = @"s3.example.com";
     break;
-  case MSTS3ProviderTypeSMMS:
+  case MSTS3ProviderTypeSEE:
     placeholder = @"";
     break;
   default:
@@ -547,19 +534,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     break;
   }
   self.endpointField.placeholderString = placeholder;
-}
-
-- (void)updateShortLinkNote {
-  NSString *apiKey = [MSTConfigManager sharedManager].shortLinkAPIKey;
-  if (apiKey.length == 0) {
-    self.shortLinkCheckbox.enabled = NO;
-    self.shortLinkNoteLabel.stringValue = @"Set s.ee API key in General to enable short links.";
-    self.shortLinkNoteLabel.textColor = [NSColor systemOrangeColor];
-  } else {
-    self.shortLinkCheckbox.enabled = YES;
-    self.shortLinkNoteLabel.stringValue = @"Uses default s.ee domain from General settings.";
-    self.shortLinkNoteLabel.textColor = [NSColor tertiaryLabelColor];
-  }
 }
 
 - (void)updateRegionsForProvider:(MSTS3ProviderType)provider {
@@ -579,9 +553,9 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 - (void)updateFieldVisibility {
   MSTS3ProviderType provider =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  BOOL isSMMS = (provider == MSTS3ProviderTypeSMMS);
+  BOOL isSEE = (provider == MSTS3ProviderTypeSEE);
   BOOL needsEndpoint =
-      (provider != MSTS3ProviderTypeAmazonS3 && provider != MSTS3ProviderTypeSMMS);
+      (provider != MSTS3ProviderTypeAmazonS3 && provider != MSTS3ProviderTypeSEE);
   BOOL needsRegion = (provider == MSTS3ProviderTypeAmazonS3);
 
   self.regionLabel.hidden = !needsRegion;
@@ -589,10 +563,11 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.endpointLabel.hidden = !needsEndpoint;
   self.endpointField.hidden = !needsEndpoint;
 
-  self.tokenLabel.hidden = !isSMMS;
-  self.tokenField.hidden = !isSMMS;
+  self.tokenLabel.hidden = !isSEE;
+  self.tokenField.hidden = !isSEE;
+  self.tokenHintButton.hidden = !isSEE;
 
-  NSArray<NSView *> *smmsHiddenViews = @[ self.bucketLabel ?: [[NSView alloc] init],
+  NSArray<NSView *> *seeHiddenViews = @[ self.bucketLabel ?: [[NSView alloc] init],
                                           self.bucketField ?: [[NSView alloc] init],
                                           self.accessKeyLabel ?: [[NSView alloc] init],
                                           self.accessKeyField ?: [[NSView alloc] init],
@@ -609,26 +584,27 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
                                           self.saveKeyPathField ?: [[NSView alloc] init],
                                           self.pathHintLabel ?: [[NSView alloc] init] ];
 
-  for (NSView *view in smmsHiddenViews) {
-    view.hidden = isSMMS;
+  for (NSView *view in seeHiddenViews) {
+    view.hidden = isSEE;
     if ([view respondsToSelector:@selector(setEnabled:)]) {
-      [(id)view setEnabled:!isSMMS];
+      [(id)view setEnabled:!isSEE];
     }
   }
 
   CGFloat rowHeight = 30.0;
   CGFloat collapseOffset = rowHeight * 7; // endpoint, bucket, access, secret, ACL, urlPrefix, useHTTPS
 
-  if (isSMMS) {
+  if (isSEE) {
     // Move token up to the Region row position
     NSRect regionLabelFrame = self.regionLabel.frame;
     NSRect regionFieldFrame = self.regionPopup.frame;
     self.tokenLabel.frame = (NSRect){.origin = regionLabelFrame.origin, .size = self.tokenLabel.frame.size};
     self.tokenField.frame = (NSRect){.origin = regionFieldFrame.origin, .size = self.tokenField.frame.size};
+    [self.tokenHintButton
+        setFrameOrigin:NSMakePoint(regionFieldFrame.origin.x,
+                                   regionFieldFrame.origin.y - 20)];
 
     // Pull up lower sections to close gaps
-    self.shortLinkCheckbox.frame = NSOffsetRect(self.baseShortLinkCheckboxFrame, 0, collapseOffset);
-    self.shortLinkNoteLabel.frame = NSOffsetRect(self.baseShortLinkNoteFrame, 0, collapseOffset);
     self.savePathLabel.frame = NSOffsetRect(self.baseSavePathLabelFrame, 0, collapseOffset);
     self.saveKeyPathField.frame = NSOffsetRect(self.baseSaveKeyPathFieldFrame, 0, collapseOffset);
     self.pathHintLabel.frame = NSOffsetRect(self.basePathHintFrame, 0, collapseOffset);
@@ -636,11 +612,9 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     self.saveButton.frame = NSOffsetRect(self.baseSaveButtonFrame, 0, collapseOffset);
     self.validateButton.frame = NSOffsetRect(self.baseValidateButtonFrame, 0, collapseOffset);
   } else {
-    // Restore original frames for non-SMMS providers
+    // Restore original frames for non-SEE providers
     self.tokenLabel.frame = self.baseTokenLabelFrame;
     self.tokenField.frame = self.baseTokenFieldFrame;
-    self.shortLinkCheckbox.frame = self.baseShortLinkCheckboxFrame;
-    self.shortLinkNoteLabel.frame = self.baseShortLinkNoteFrame;
     self.savePathLabel.frame = self.baseSavePathLabelFrame;
     self.saveKeyPathField.frame = self.baseSaveKeyPathFieldFrame;
     self.pathHintLabel.frame = self.basePathHintFrame;
@@ -663,11 +637,9 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   }
 }
 
-- (void)shortLinkChanged:(id)sender {
-  BOOL enabled = (self.shortLinkCheckbox.state == NSControlStateValueOn);
-  self.config.shortLinkEnabled = enabled;
-  [[MSTConfigManager sharedManager] updateHostConfig:self.config];
-  [self updateShortLinkNote];
+- (void)openSEEDeveloperPage:(id)sender {
+  [[NSWorkspace sharedWorkspace]
+      openURL:[NSURL URLWithString:@"https://s.ee/user/developers"]];
 }
 
 - (void)toggleAccessKeyVisibility:(id)sender {
@@ -731,14 +703,13 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   self.config.name = self.nameField.stringValue;
   self.config.providerType =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  self.config.shortLinkEnabled = (self.shortLinkCheckbox.state == NSControlStateValueOn);
 
   NSString *savePath = self.saveKeyPathField.stringValue;
   self.config.saveKeyPath =
       savePath.length > 0 ? savePath : @"{filename}.{ext}";
 
-  if (self.config.providerType == MSTS3ProviderTypeSMMS) {
-    self.config.smmsToken = self.tokenField.stringValue;
+  if (self.config.providerType == MSTS3ProviderTypeSEE) {
+    self.config.seeToken = self.tokenField.stringValue;
   } else {
     NSMenuItem *regionItem = self.regionPopup.selectedItem;
     NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
@@ -750,7 +721,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     self.config.acl = self.aclPopup.selectedItem.representedObject;
     self.config.urlPrefix = MSTStripWhitespaceAndNewlines(self.urlPrefixField.stringValue);
     self.config.useHTTPS = (self.useHTTPSCheckbox.state == NSControlStateValueOn);
-    self.config.smmsToken = @"";
+    self.config.seeToken = @"";
   }
 
   [[MSTConfigManager sharedManager] updateHostConfig:self.config];
@@ -775,8 +746,8 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   MSTS3HostConfig *testConfig = [[MSTS3HostConfig alloc] init];
   testConfig.providerType =
       (MSTS3ProviderType)self.providerPopup.selectedItem.tag;
-  if (testConfig.providerType == MSTS3ProviderTypeSMMS) {
-    testConfig.smmsToken = self.tokenField.stringValue;
+  if (testConfig.providerType == MSTS3ProviderTypeSEE) {
+    testConfig.seeToken = self.tokenField.stringValue;
   } else {
     NSMenuItem *regionItem = self.regionPopup.selectedItem;
     NSString *regionValue = regionItem ? (regionItem.representedObject ?: @"") : @"";
@@ -791,7 +762,7 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   }
 
   // Create a minimal 1x1 pixel red PNG image for validation
-  // This ensures compatibility with image-only services like SM.MS
+  // This ensures compatibility with image-only services like S.EE
   static const unsigned char pngData[] = {
       0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,  // PNG signature
       0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,  // IHDR chunk

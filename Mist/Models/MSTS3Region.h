@@ -16,7 +16,7 @@ typedef NS_ENUM(NSInteger, MSTS3ProviderType) {
   MSTS3ProviderTypeBackblazeB2,
   MSTS3ProviderTypeMinIO,
   MSTS3ProviderTypeCustom,
-  MSTS3ProviderTypeSMMS
+  MSTS3ProviderTypeSEE
 };
 
 @interface MSTS3Region : NSObject

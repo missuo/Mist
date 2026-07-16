@@ -55,7 +55,6 @@ static const NSUInteger kMaxHistoryItems = 500;
 
 - (void)addHistoryItemWithFilename:(NSString *)filename
                                url:(NSString *)url
-                          shortURL:(nullable NSString *)shortURL
                         hostConfig:(MSTS3HostConfig *)hostConfig
                           fileSize:(NSUInteger)fileSize
                           mimeType:(nullable NSString *)mimeType
@@ -63,7 +62,6 @@ static const NSUInteger kMaxHistoryItems = 500;
   MSTUploadHistoryItem *item = [[MSTUploadHistoryItem alloc] init];
   item.filename = filename;
   item.url = url;
-  item.shortURL = shortURL;
   item.hostName = hostConfig.name ?: @"Unknown";
   item.hostIdentifier = hostConfig.identifier ?: @"";
   item.uploadDate = [NSDate date];

@@ -37,7 +37,6 @@
   [coder encodeObject:_identifier forKey:@"identifier"];
   [coder encodeObject:_filename forKey:@"filename"];
   [coder encodeObject:_url forKey:@"url"];
-  [coder encodeObject:_shortURL forKey:@"shortURL"];
   [coder encodeObject:_hostName forKey:@"hostName"];
   [coder encodeObject:_hostIdentifier forKey:@"hostIdentifier"];
   [coder encodeObject:_uploadDate forKey:@"uploadDate"];
@@ -52,7 +51,6 @@
   if (self) {
     _filename = [coder decodeObjectOfClass:[NSString class] forKey:@"filename"] ?: @"";
     _url = [coder decodeObjectOfClass:[NSString class] forKey:@"url"] ?: @"";
-    _shortURL = [coder decodeObjectOfClass:[NSString class] forKey:@"shortURL"];
     _hostName = [coder decodeObjectOfClass:[NSString class] forKey:@"hostName"] ?: @"";
     _hostIdentifier = [coder decodeObjectOfClass:[NSString class] forKey:@"hostIdentifier"] ?: @"";
     _uploadDate = [coder decodeObjectOfClass:[NSDate class] forKey:@"uploadDate"] ?: [NSDate date];
