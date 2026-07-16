@@ -60,7 +60,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 @property(nonatomic, strong) NSTextField *regionLabel;
 @property(nonatomic, strong) NSTextField *endpointLabel;
 
-@property(nonatomic, strong) NSImageView *providerIconView;
 @property(nonatomic, strong) NSTextField *connectionSectionLabel;
 @property(nonatomic, strong) NSTextField *credentialsSectionLabel;
 @property(nonatomic, strong) NSTextField *outputSectionLabel;
@@ -146,19 +145,13 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
 
   // Name
   [self addLabel:@"Name:" atY:y];
-  self.nameField = [self createTextFieldAtX:fieldX y:y width:fieldWidth - 36];
+  self.nameField = [self createTextFieldAtX:fieldX y:y width:fieldWidth];
   self.nameField.placeholderString = @"My S3 Host";
   self.nameField.delegate = self;
   [self.contentView addSubview:self.nameField];
-
-  self.providerIconView =
-      [[NSImageView alloc] initWithFrame:NSMakeRect(fieldX + fieldWidth - 28, y - 1, 24, 24)];
-  self.providerIconView.imageScaling = NSImageScaleProportionallyUpOrDown;
-  self.providerIconView.image = [NSImage imageNamed:@"aws"];
-  [self.contentView addSubview:self.providerIconView];
   y -= row;
 
-  // Provider
+  // Provider (each item carries the provider's icon)
   [self addLabel:@"Provider:" atY:y];
   self.providerPopup = [[NSPopUpButton alloc]
       initWithFrame:NSMakeRect(fieldX, y, fieldWidth, 22)];
@@ -167,6 +160,10 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
     [self.providerPopup
         addItemWithTitle:[MSTS3Region displayNameForProvider:type]];
     self.providerPopup.lastItem.tag = type;
+    NSImage *icon =
+        [[NSImage imageNamed:[MSTS3Region iconNameForProvider:type]] copy];
+    icon.size = NSMakeSize(16, 16);
+    self.providerPopup.lastItem.image = icon;
   }
   self.providerPopup.target = self;
   self.providerPopup.action = @selector(providerChanged:);
@@ -456,7 +453,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   }
 
   [self updateFieldVisibility];
-  [self updateProviderIcon:self.config.providerType];
   [self updateEndpointPlaceholder:self.config.providerType];
   self.statusLabel.stringValue = @"";
 
@@ -469,7 +465,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
   MSTS3ProviderType provider = (MSTS3ProviderType)sender.selectedItem.tag;
   [self updateRegionsForProvider:provider];
   [self updateFieldVisibility];
-  [self updateProviderIcon:provider];
   [self updateEndpointPlaceholder:provider];
 
   // Auto-select first region for providers with fixed regions (Wasabi, R2)
@@ -477,35 +472,6 @@ static NSString *MSTStripWhitespaceAndNewlines(NSString *value) {
       provider == MSTS3ProviderTypeCloudflareR2) {
     [self.regionPopup selectItemAtIndex:0];
   }
-}
-
-- (void)updateProviderIcon:(MSTS3ProviderType)provider {
-  NSString *iconName;
-  switch (provider) {
-  case MSTS3ProviderTypeAmazonS3:
-    iconName = @"aws";
-    break;
-  case MSTS3ProviderTypeWasabi:
-    iconName = @"wasabi";
-    break;
-  case MSTS3ProviderTypeCloudflareR2:
-    iconName = @"cloudflare";
-    break;
-  case MSTS3ProviderTypeBackblazeB2:
-    iconName = @"backblaze";
-    break;
-  case MSTS3ProviderTypeMinIO:
-    iconName = @"minio";
-    break;
-  case MSTS3ProviderTypeSEE:
-    iconName = @"s.ee";
-    break;
-  case MSTS3ProviderTypeCustom:
-  default:
-    iconName = @"custom";
-    break;
-  }
-  self.providerIconView.image = [NSImage imageNamed:iconName];
 }
 
 - (void)updateEndpointPlaceholder:(MSTS3ProviderType)provider {

@@ -191,6 +191,26 @@
   return @"Unknown";
 }
 
++ (NSString *)iconNameForProvider:(MSTS3ProviderType)provider {
+  switch (provider) {
+  case MSTS3ProviderTypeAmazonS3:
+    return @"aws";
+  case MSTS3ProviderTypeWasabi:
+    return @"wasabi";
+  case MSTS3ProviderTypeCloudflareR2:
+    return @"cloudflare";
+  case MSTS3ProviderTypeBackblazeB2:
+    return @"backblaze";
+  case MSTS3ProviderTypeMinIO:
+    return @"minio";
+  case MSTS3ProviderTypeSEE:
+    return @"s.ee";
+  case MSTS3ProviderTypeCustom:
+    return @"custom";
+  }
+  return @"custom";
+}
+
 + (NSString *)defaultRegionForProvider:(MSTS3ProviderType)provider {
   switch (provider) {
   case MSTS3ProviderTypeAmazonS3:

@@ -434,7 +434,7 @@
   NSTextField *bucketField = [cellView viewWithTag:2];
 
   // Set provider icon
-  NSString *iconName = [self iconNameForProviderType:config.providerType];
+  NSString *iconName = [MSTS3Region iconNameForProvider:config.providerType];
   iconView.image = [NSImage imageNamed:iconName];
 
   NSString *name = config.name;
@@ -450,26 +450,6 @@
   }
 
   return cellView;
-}
-
-- (NSString *)iconNameForProviderType:(MSTS3ProviderType)providerType {
-  switch (providerType) {
-  case MSTS3ProviderTypeAmazonS3:
-    return @"aws";
-  case MSTS3ProviderTypeWasabi:
-    return @"wasabi";
-  case MSTS3ProviderTypeCloudflareR2:
-    return @"cloudflare";
-  case MSTS3ProviderTypeBackblazeB2:
-    return @"backblaze";
-  case MSTS3ProviderTypeMinIO:
-    return @"minio";
-  case MSTS3ProviderTypeSEE:
-    return @"s.ee";
-  case MSTS3ProviderTypeCustom:
-  default:
-    return @"custom";
-  }
 }
 
 - (void)tableViewSelectionDidChange:(NSNotification *)notification {

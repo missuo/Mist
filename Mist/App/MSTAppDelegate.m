@@ -465,6 +465,11 @@ static MSTAppDelegate *_shared = nil;
       item.target = self;
       item.representedObject = config.identifier;
 
+      NSImage *icon = [[NSImage
+          imageNamed:[MSTS3Region iconNameForProvider:config.providerType]] copy];
+      icon.size = NSMakeSize(16, 16);
+      item.image = icon;
+
       if (config.isDefault) {
         item.state = NSControlStateValueOn;
       }

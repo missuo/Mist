@@ -33,6 +33,7 @@ typedef NS_ENUM(NSInteger, MSTS3ProviderType) {
 + (nullable MSTS3Region *)regionWithIdentifier:(NSString *)identifier;
 + (NSString *)endpointForRegion:(NSString *)regionIdentifier;
 + (NSString *)displayNameForProvider:(MSTS3ProviderType)provider;
++ (NSString *)iconNameForProvider:(MSTS3ProviderType)provider;
 + (NSString *)defaultRegionForProvider:(MSTS3ProviderType)provider;
 
 @end
