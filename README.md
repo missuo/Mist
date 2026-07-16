@@ -1,7 +1,6 @@
-# Mist
-
 <div align="center">
   <img src="./AppIcon.png" alt="Mist Icon" width="128" height="128">
+  <h1>Mist</h1>
   <p><strong>A native macOS menu bar uploader for S3-compatible storage and S.EE</strong></p>
 
   <p>
