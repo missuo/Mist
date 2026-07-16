@@ -101,8 +101,7 @@
   NSArray<NSNumber *> *providers = @[
     @(MSTS3ProviderTypeAmazonS3), @(MSTS3ProviderTypeWasabi),
     @(MSTS3ProviderTypeCloudflareR2), @(MSTS3ProviderTypeBackblazeB2),
-    @(MSTS3ProviderTypeMinIO), @(MSTS3ProviderTypeCustom),
-    @(MSTS3ProviderTypeSEE)
+    @(MSTS3ProviderTypeMinIO), @(MSTS3ProviderTypeSEE)
   ];
   CGFloat iconSize = 28;
   CGFloat iconGap = 16;
