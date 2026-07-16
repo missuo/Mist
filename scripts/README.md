@@ -41,14 +41,6 @@ export APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"   # app-specific password
 > `.github/workflows/release.yml` does all of the above plus the GitHub
 > Release and Sparkle appcast update. See [docs/signing.md](../docs/signing.md).
 
-## Services Scripts
-
-The remaining scripts (`install-service.sh`, `check-service-now.sh`,
-`debug-service.sh`, `test-*.sh`, `view-service-log.sh`, `watch-log.sh`, …)
-install and debug the macOS Services ("Upload to Mist" in Finder's
-right-click menu) integration. See [docs/services.md](../docs/services.md)
-and [docs/troubleshooting.md](../docs/troubleshooting.md).
-
 ## Security Best Practices
 
 Never commit passwords to Git. Use environment variables:

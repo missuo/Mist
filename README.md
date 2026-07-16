@@ -68,13 +68,7 @@ Save path templates support:
 
 Drag one or more files onto the Mist menu bar icon. Mist uploads them and copies the resulting URL or URLs to the clipboard.
 
-Finder integration:
-
-```bash
-./scripts/install-service.sh
-```
-
-Then enable **Upload to Mist** in System Settings -> Keyboard -> Keyboard Shortcuts -> Services. See [docs/services.md](docs/services.md) for details.
+Finder integration: enable the **MistFinder** extension in System Settings -> General -> Login Items & Extensions -> Extensions, then right-click any file in Finder and choose **Upload to Mist**. See [docs/finder-extension.md](docs/finder-extension.md) for details.
 
 URL scheme:
 
@@ -93,14 +87,10 @@ open Mist.xcodeproj
 
 Mist is built with native macOS frameworks, including Cocoa, Foundation, CloudKit, UniformTypeIdentifiers, and UserNotifications.
 
-## Troubleshooting
-
-See [docs/troubleshooting.md](docs/troubleshooting.md).
-
 ## Documentation
 
 - [Signing, Notarization, and Releases](docs/signing.md)
-- [Finder Services Integration](docs/services.md) ([quick start](docs/services-quick-start.md))
+- [Finder Extension](docs/finder-extension.md)
 - [iCloud Sync](docs/icloud-sync.md)
 - [Build and Release Scripts](scripts/README.md)
 

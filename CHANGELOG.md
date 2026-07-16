@@ -12,6 +12,8 @@ the in-app update dialog.
 
 - Automatic updates via Sparkle: Mist now checks for new versions every 6 hours, and you can check manually with "Check for Updates..." in the menu bar.
 - Releases are signed with a Developer ID certificate and notarized by Apple, so downloads open without Gatekeeper warnings.
+- Finder extension: "Upload to Mist" now appears directly in Finder's right-click menu (enable MistFinder in System Settings → Extensions). This replaces the Automator-based Services integration, which lived one level deep in the Services submenu.
+- Provider icons now show inside the provider dropdown and the menu bar Host submenu.
 
 ### Fixed
 

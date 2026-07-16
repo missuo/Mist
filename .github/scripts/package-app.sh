@@ -19,6 +19,9 @@ APP_PATH="$1"
 OUTPUT_ZIP="$2"
 OUTPUT_DMG="$3"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR/../.."
+
 test -d "$APP_PATH"
 
 if [ -n "${CODESIGN_IDENTITY:-}" ]; then
@@ -45,6 +48,16 @@ if [ -n "${CODESIGN_IDENTITY:-}" ]; then
   while IFS= read -r -d '' nested; do
     codesign "${SIGN_FLAGS[@]}" "$nested"
   done < <(find "$APP_PATH/Contents" -depth \( -name "*.dylib" -o -name "*.framework" \) -print0)
+
+  # The Finder Sync extension must be sandboxed, so sign it with its
+  # entitlements file (the unsigned CI build carries no entitlements to
+  # preserve).
+  FINDER_APPEX="$APP_PATH/Contents/PlugIns/MistFinder.appex"
+  if [ -d "$FINDER_APPEX" ]; then
+    codesign "${SIGN_FLAGS[@]}" \
+      --entitlements "$REPO_ROOT/MistFinder/MistFinder.entitlements" \
+      "$FINDER_APPEX"
+  fi
 
   codesign "${SIGN_FLAGS[@]}" "$APP_PATH"
 else

@@ -8,10 +8,36 @@
 
 /* Begin PBXBuildFile section */
 		BFC8D6132EEDD100004235B2 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = BFC8D6122EEDD100004235B2 /* Sparkle */; };
+		BFC8D62B2EEE0001004235B2 /* MistFinder.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BFC8D6202EEE0001004235B2 /* MistFinder.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BFC8D62C2EEE0001004235B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BFC8D5EB2EEDA414004235B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BFC8D6232EEE0001004235B2;
+			remoteInfo = MistFinder;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BFC8D62A2EEE0001004235B2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BFC8D62B2EEE0001004235B2 /* MistFinder.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		BFC8D5F32EEDA414004235B2 /* Mist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mist.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFC8D6202EEE0001004235B2 /* MistFinder.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MistFinder.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -22,6 +48,13 @@
 			);
 			target = BFC8D5F22EEDA414004235B2 /* Mist */;
 		};
+		BFC8D6222EEE0001004235B2 /* Exceptions for "MistFinder" folder in "MistFinder" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BFC8D6232EEE0001004235B2 /* MistFinder */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -31,6 +64,14 @@
 				BFC8D6102EEDD000004235B2 /* Exceptions for "Mist" folder in "Mist" target */,
 			);
 			path = Mist;
+			sourceTree = "<group>";
+		};
+		BFC8D6212EEE0001004235B2 /* MistFinder */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BFC8D6222EEE0001004235B2 /* Exceptions for "MistFinder" folder in "MistFinder" target */,
+			);
+			path = MistFinder;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -44,6 +85,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BFC8D6252EEE0001004235B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -51,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				BFC8D5F52EEDA414004235B2 /* Mist */,
+				BFC8D6212EEE0001004235B2 /* MistFinder */,
 				BFC8D5F42EEDA414004235B2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,6 +108,7 @@
 			isa = PBXGroup;
 			children = (
 				BFC8D5F32EEDA414004235B2 /* Mist.app */,
+				BFC8D6202EEE0001004235B2 /* MistFinder.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -73,10 +123,12 @@
 				BFC8D5EF2EEDA414004235B2 /* Sources */,
 				BFC8D5F02EEDA414004235B2 /* Frameworks */,
 				BFC8D5F12EEDA414004235B2 /* Resources */,
+				BFC8D62A2EEE0001004235B2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BFC8D62D2EEE0001004235B2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BFC8D5F52EEDA414004235B2 /* Mist */,
@@ -88,6 +140,28 @@
 			productName = Mist;
 			productReference = BFC8D5F32EEDA414004235B2 /* Mist.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BFC8D6232EEE0001004235B2 /* MistFinder */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BFC8D6272EEE0001004235B2 /* Build configuration list for PBXNativeTarget "MistFinder" */;
+			buildPhases = (
+				BFC8D6242EEE0001004235B2 /* Sources */,
+				BFC8D6252EEE0001004235B2 /* Frameworks */,
+				BFC8D6262EEE0001004235B2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BFC8D6212EEE0001004235B2 /* MistFinder */,
+			);
+			name = MistFinder;
+			packageProductDependencies = (
+			);
+			productName = MistFinder;
+			productReference = BFC8D6202EEE0001004235B2 /* MistFinder.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -122,12 +196,20 @@
 			projectRoot = "";
 			targets = (
 				BFC8D5F22EEDA414004235B2 /* Mist */,
+				BFC8D6232EEE0001004235B2 /* MistFinder */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		BFC8D5F12EEDA414004235B2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BFC8D6262EEE0001004235B2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -144,7 +226,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BFC8D6242EEE0001004235B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BFC8D62D2EEE0001004235B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BFC8D6232EEE0001004235B2 /* MistFinder */;
+			targetProxy = BFC8D62C2EEE0001004235B2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		BFC8D5FC2EEDA415004235B2 /* Debug */ = {
@@ -329,6 +426,56 @@ CURRENT_PROJECT_VERSION = 17;
 			};
 			name = Release;
 		};
+		BFC8D6282EEE0001004235B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MistFinder/MistFinder.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = NCFNX3LJ83;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MistFinder/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MistFinder;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright 2025 OwO Network, LLC. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.14;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Mist.MistFinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		BFC8D6292EEE0001004235B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MistFinder/MistFinder.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 17;
+				DEVELOPMENT_TEAM = NCFNX3LJ83;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MistFinder/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MistFinder;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright 2025 OwO Network, LLC. All rights reserved.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.14;
+				PRODUCT_BUNDLE_IDENTIFIER = nz.owo.Mist.MistFinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -346,6 +493,15 @@ CURRENT_PROJECT_VERSION = 17;
 			buildConfigurations = (
 				BFC8D5FF2EEDA415004235B2 /* Debug */,
 				BFC8D6002EEDA415004235B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BFC8D6272EEE0001004235B2 /* Build configuration list for PBXNativeTarget "MistFinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFC8D6282EEE0001004235B2 /* Debug */,
+				BFC8D6292EEE0001004235B2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
