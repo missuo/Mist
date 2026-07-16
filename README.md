@@ -5,7 +5,7 @@
 
   <p>
     <a href="https://github.com/missuo/Mist/releases/latest"><img src="https://img.shields.io/github/v/release/missuo/Mist" alt="Latest Release"></a>
-    <a href="https://github.com/missuo/Mist/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue" alt="License"></a>
+    <a href="https://github.com/missuo/Mist/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue" alt="License"></a>
     <img src="https://img.shields.io/badge/macOS-14.0%2B-blue" alt="macOS 14.0+">
   </p>
 </div>
@@ -103,4 +103,4 @@ Mist is built upon the great work of
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) — free for personal and any other noncommercial use. See [LICENSE.md](LICENSE.md).
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) — free for personal and any other noncommercial use. See [LICENSE](LICENSE).
