@@ -42,6 +42,7 @@
   // Generate save key from path template
   NSString *saveKey = [MSTUploadUtilities generateSaveKeyWithTemplate:config.saveKeyPath
                                                              filename:filename];
+  NSString *encodedSaveKey = [MSTUploadUtilities uriEncode:saveKey encodeSlash:NO];
 
   NSLog(@"[Mist] S3 upload request starting: %@/%@", config.baseURL, saveKey);
 
@@ -51,7 +52,7 @@
   // Build the request
   NSMutableURLRequest *request = [self buildS3RequestWithConfig:config
                                                            data:data
-                                                        saveKey:saveKey
+                                                 encodedSaveKey:encodedSaveKey
                                                     contentType:contentType];
 
   if (!request) {
@@ -77,15 +78,22 @@
           }
 
           if (httpResponse.statusCode >= 200 && httpResponse.statusCode < 300) {
+            NSString *baseURL = config.baseURL;
             NSLog(@"[Mist] S3 upload success - URLPrefix: '%@', BaseURL: '%@'",
-                  config.urlPrefix, config.baseURL);
+                  config.urlPrefix, baseURL);
             NSString *url;
-            if (config.baseURL.length > 0) {
-              // URL prefix is set, use baseURL + "/" + saveKey
-              url = [NSString stringWithFormat:@"%@/%@", config.baseURL, saveKey];
+            if (baseURL.length > 0) {
+              url = [NSString stringWithFormat:@"%@/%@", baseURL, encodedSaveKey];
             } else {
-              // URL prefix is empty, saveKey contains the full domain+path
-              url = [NSString stringWithFormat:@"%@://%@", config.scheme, saveKey];
+              NSRange separator = [saveKey rangeOfString:@"/"];
+              NSString *host = saveKey;
+              NSString *path = @"";
+              if (separator.location != NSNotFound) {
+                host = [saveKey substringToIndex:separator.location];
+                path = [encodedSaveKey substringFromIndex:
+                    [encodedSaveKey rangeOfString:@"/"].location];
+              }
+              url = [NSString stringWithFormat:@"%@://%@%@", config.scheme, host, path];
             }
             completion(url, nil);
           } else {
@@ -117,11 +125,8 @@
 
 - (NSMutableURLRequest *)buildS3RequestWithConfig:(MSTS3HostConfig *)config
                                              data:(NSData *)data
-                                          saveKey:(NSString *)saveKey
+                                   encodedSaveKey:(NSString *)encodedSaveKey
                                       contentType:(NSString *)contentType {
-
-  // URI encode the save key for path (but not for signing)
-  NSString *encodedSaveKey = [MSTUploadUtilities uriEncode:saveKey encodeSlash:NO];
 
   // Build URL
   NSString *host;
